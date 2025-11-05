@@ -28,11 +28,18 @@ const Login: React.FC = () => {
     const [showAlert, setShowAlert] = React.useState(false);
     const [showToast, setShowToast] = React.useState(false);
     const [errorMessage, setErrorMessage] = React.useState('');
+    const [isLoading, setIsLoading] = React.useState(false);
 
     //Function to handle email and password login
     const doLogin = async () => {
+       
+        if (isLoading) return;
+        
+        setIsLoading(true);
+        await present('Signing in...');
+        
         try {
-            // First, authenticate with Supabase Auth
+           
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
@@ -44,8 +51,11 @@ const Login: React.FC = () => {
                 return;
             }
 
-            // Check if user account is active
+           
             if (data.user) {
+               
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
                 const { data: userData, error: userError } = await supabase
                     .from('users')
                     .select('active, role')
@@ -56,26 +66,33 @@ const Login: React.FC = () => {
 
                 if (userError) {
                     console.error('Error fetching user data:', userError);
-                    setErrorMessage("Error verifying account status");
-                    setShowAlert(true);
-                    // Sign out the user since we can't verify their status
-                    await supabase.auth.signOut();
-                    return;
-                }
+                    
+                    
+                    if (userError.code === 'PGRST116') {
+                        console.log('User not found in users table, treating as active');
+                        
+                    } else {
+                        setErrorMessage("Error verifying account status");
+                        setShowAlert(true);
+                       
+                        await supabase.auth.signOut();
+                        return;
+                    }
+                } else {
+                    
+                    const isActive = userData?.active !== false;
 
-                // Check if user is active - treat null as true (active) for backwards compatibility
-                const isActive = userData?.active !== false;
-
-                if (!isActive) {
-                    setErrorMessage("Your account has been deactivated. Please contact an administrator.");
-                    setShowAlert(true);
-                    // Sign out the user since their account is deactivated
-                    await supabase.auth.signOut();
-                    return;
+                    if (!isActive) {
+                        setErrorMessage("Your account has been deactivated. Please contact an administrator.");
+                        setShowAlert(true);
+                        
+                        await supabase.auth.signOut();
+                        return;
+                    }
                 }
             }
 
-            // If we get here, user is authenticated and active
+           
             setShowToast(true);
             setTimeout(() => {
                 router.push('/home', 'forward', 'replace');
@@ -84,6 +101,9 @@ const Login: React.FC = () => {
             console.error('Login error:', error);
             setErrorMessage("An unexpected error occurred");
             setShowAlert(true);
+        } finally {
+            setIsLoading(false);
+            dismiss();
         }
     };
 
@@ -217,6 +237,7 @@ const Login: React.FC = () => {
                                         <IonButton
                                             type='submit'
                                             expand="block"
+                                            disabled={isLoading}
                                             style={{
                                                 '--background': '#002d54',
                                                 '--background-hover': '#003d6b',
