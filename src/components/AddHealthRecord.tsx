@@ -292,8 +292,40 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                 setForm(emptyForm);
                 onClose();
             } else {
+                const currentYear = new Date().getFullYear();
+                let finalHealthId: number;
+                let attempts = 0;
+                const maxAttempts = 10;
+                
+                do {
+                    const randomNum = Math.floor(Math.random() * 10000);
+                    finalHealthId = parseInt(`${currentYear}${randomNum.toString().padStart(4, '0')}`);
+                    
+                    // Check if this ID already exists
+                    const { data: existingRecord, error: checkError } = await supabase
+                        .from('maternalhealthRecord')
+                        .select('health_id')
+                        .eq('health_id', finalHealthId)
+                        .maybeSingle(); // Use maybeSingle() instead of single()
+
+                    if (checkError) {
+                        console.error('Error checking existing health_id:', checkError);
+                        throw checkError;
+                    }
+
+                    if (!existingRecord) {
+                        break;
+                    }
+
+                    attempts++;
+                    if (attempts >= maxAttempts) {
+                        throw new Error('Could not generate unique health ID after multiple attempts');
+                    }
+                } while (attempts < maxAttempts);
+                
                 // Create new record
                 const payload = {
+                    health_id: finalHealthId,
                     profileid: form.profileid,
                     pregnancy_status: form.pregnancy_status || null,
                     stage_of_pregnancy: form.stage_of_pregnancy || null,
@@ -310,7 +342,8 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
 
                 const { error } = await supabase
                     .from('maternalhealthRecord')
-                    .insert(payload);
+                    .insert(payload)
+                    
 
                 if (error) throw error;
 
@@ -521,7 +554,7 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                                                     fill="outline"
                                                     type="number"
                                                     value={form.num_of_pregnancies}
-                                                    onIonInput={(e) => handleChange('num_of_pregnancies', parseInt(e.detail.value ?? '0'))}
+                                                    onIonInput={(e) => handleChange('num_of_pregnancies', parseInt(e.detail.value ?? ''))}
                                                     style={{ "--color": "#000" }}
                                                     disabled={save}
                                                 />

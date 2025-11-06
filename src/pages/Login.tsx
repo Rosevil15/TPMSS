@@ -80,10 +80,15 @@ const Login: React.FC = () => {
                     if (userError.code === 'PGRST116') {
                         console.log('User not found in users table, treating as active');
                         
+                        setShowToast(true);
+                        setTimeout(() => {
+                            router.push('/home', 'forward', 'replace');
+                        }, 1000);
+                        return;
+                        
                     } else {
                         setErrorMessage("Error verifying account status");
-                        setShowAlert(true);
-                       
+                        setShowAlert(true); 
                         await supabase.auth.signOut();
                         return;
                     }
@@ -93,19 +98,28 @@ const Login: React.FC = () => {
 
                     if (!isActive) {
                         setErrorMessage("Your account has been deactivated. Please contact an administrator.");
-                        setShowAlert(true);
-                        
+                        setShowAlert(true);      
                         await supabase.auth.signOut();
                         return;
                     }
+
+                    const userRole = userData.role;
+                    console.log('User role:', userRole);
+
+                    const adminRoles = ['admin', 'healthworker', 'socialworker', 'school'];
+
+                    setShowToast(true);
+                    setTimeout(() => {
+                        if ( adminRoles.includes(userRole) ) {
+                            router.push('/admin', 'forward', 'replace');
+                        } else {
+                            router.push('/home', 'forward', 'replace');
+                        }
+                    }, 1000);
+                    return;
                 }
             }
 
-           
-            setShowToast(true);
-            setTimeout(() => {
-                router.push('/home', 'forward', 'replace');
-            }, 1000);
         } catch (error: any) {
             console.error('Login error:', error);
             setErrorMessage("An unexpected error occurred");
