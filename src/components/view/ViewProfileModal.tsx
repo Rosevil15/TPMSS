@@ -8,6 +8,7 @@ interface ViewProfileModalProps {
     onClose: () => void;
     profileId: number | null;
 }
+
 const ViewProfileModal: React.FC<ViewProfileModalProps> = ({ isOpen, onClose, profileId }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -35,6 +36,7 @@ const ViewProfileModal: React.FC<ViewProfileModalProps> = ({ isOpen, onClose, pr
 
             if (profileError) {
                 setError(profileError.message);
+                return;
             }
 
             const { data: partner, error: partnerError } = await supabase
@@ -43,8 +45,9 @@ const ViewProfileModal: React.FC<ViewProfileModalProps> = ({ isOpen, onClose, pr
                 .eq('profileid', profileId)
                 .maybeSingle();
 
+            // Fetch health data if it exists
             const { data: health, error: healthError } = await supabase
-                .from('maternalhealthRecord')
+                .from('healthRecords')
                 .select('*')
                 .eq('profileid', profileId)
                 .maybeSingle();
@@ -75,7 +78,8 @@ const ViewProfileModal: React.FC<ViewProfileModalProps> = ({ isOpen, onClose, pr
                     }}
                 >
                     <IonTitle style={{ fontWeight: 'bold' }}>
-                        View Profile
+                        <IonIcon icon={personOutline} style={{ marginRight: '8px' }} />
+                        Profile Details
                     </IonTitle>
 
                     <IonButton
@@ -98,6 +102,7 @@ const ViewProfileModal: React.FC<ViewProfileModalProps> = ({ isOpen, onClose, pr
                 {loading ? (
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                         <IonSpinner name="crescent" />
+                        <IonText style={{ marginLeft: '10px' }}>Loading profile...</IonText>
                     </div>
                 ) : error ? (
                     <IonText color="danger">
@@ -105,228 +110,306 @@ const ViewProfileModal: React.FC<ViewProfileModalProps> = ({ isOpen, onClose, pr
                     </IonText>
                 ) : profileData ? (
                     <>
-                        {/* PROFILE INFORMATION */}
+                        {/* TEENAGE MOTHER PROFILE INFORMATION */}
                         <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#fff", marginBottom: '20px' }}>
                             <IonCardContent>
-                                <h2 style={{ color: "black", fontWeight: "bold", backgroundColor: '#fff', padding: '10px', fontSize: '1.5rem', borderBottom: '2px solid #002d54' }}>
-                                    Profile Details
+                                <h2 style={{ color: "black", fontWeight: "bold", backgroundColor: '#fff', padding: '10px', fontSize: '1.5rem', borderBottom: '2px solid #002d54', display: 'flex', alignItems: 'center' }}>
+                                    <IonIcon icon={personOutline} style={{ marginRight: '10px' }} />
+                                    Teenage Mother Profile
                                 </h2>
 
                                 {/* Basic Information */}
                                 <IonItemGroup>
                                     <IonItemDivider
                                         style={{
-                                            "--color": "#000",
+                                            "--color": "#002d54",
                                             fontWeight: "bold",
                                             "--background": "#fff",
+                                            fontSize: "18px",
                                         }}
                                     >
-                                        Teenage Basic Information
+                                        <IonIcon icon={personOutline} style={{ marginRight: '8px' }} />
+                                        Basic Information
                                     </IonItemDivider>
 
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Profile ID:</strong> {profileData.profileid}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
+                                    <IonGrid>
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Profile ID:</strong> {profileData.profileid}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
 
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>First Name:</strong> {profileData.firstName}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Last Name:</strong> {profileData.lastName}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>First Name:</strong> {profileData.firstName || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Last Name:</strong> {profileData.lastName || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
 
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Age:</strong> {profileData.age || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Date of Birth:</strong> {profileData.birthdate || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Age:</strong> {profileData.age || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Date of Birth:</strong> {profileData.birthdate || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
 
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Contact Number:</strong> {profileData.contactnum || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Marital Status:</strong>{' '}
-                                                    <IonBadge color={profileData.marital_status === 'Single' ? 'primary' : 'success'}>
-                                                        {profileData.marital_status || 'N/A'}
-                                                    </IonBadge>
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Contact Number:</strong> {profileData.contactnum || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Marital Status:</strong>{' '}
+                                                        <IonBadge color={profileData.marital_status === 'Single' ? 'primary' : 'success'}>
+                                                            {profileData.marital_status || 'N/A'}
+                                                        </IonBadge>
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
 
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Religion:</strong> {profileData.religion || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Living With:</strong> {profileData.living_with || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Religion:</strong> {profileData.religion || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Living With:</strong> {profileData.living_with || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
 
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Indigenous Ethnicity:</strong> {profileData.indigenous_ethnicity || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Teenage Mother Occupation:</strong> {profileData.teenage_occupation || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Teenage Mother Income:</strong> {profileData.teenage_income || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
 
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Father's Occupation:</strong> {profileData.fathers_occupation || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Mother's Occupation:</strong> {profileData.mothers_occupation || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Indigenous Ethnicity:</strong> 
+                                                        <IonBadge color={profileData.indigenous_ethnicity ? 'success' : 'medium'} style={{ marginLeft: '5px' }}>
+                                                            {profileData.indigenous_ethnicity || 'N/A'}
+                                                        </IonBadge>
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Multiple Partners:</strong> {profileData.multiple_partner_num || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
+                                    </IonGrid>
+                                </IonItemGroup>
 
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Family Income:</strong> {profileData.family_income || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
+                                {/* Family Information */}
+                                <IonItemGroup>
+                                    <IonItemDivider
+                                        style={{
+                                            "--color": "#002d54",
+                                            fontWeight: "bold",
+                                            "--background": "#fff",
+                                            fontSize: "18px",
+                                        }}
+                                    >
+                                        <IonIcon icon={peopleOutline} style={{ marginRight: '8px' }} />
+                                        Family Information
+                                    </IonItemDivider>
+
+                                    <IonGrid>
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Father's Occupation:</strong> {profileData.fathers_occupation || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Father's Income:</strong> {profileData.fathers_income || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
+
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Mother's Occupation:</strong> {profileData.mothers_occupation || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Mother's Income:</strong> {profileData.mothers_income || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
+                                    </IonGrid>
                                 </IonItemGroup>
 
                                 {/* Address Information */}
                                 <IonItemGroup>
                                     <IonItemDivider
                                         style={{
-                                            "--color": "#000",
+                                            "--color": "#002d54",
                                             fontWeight: "bold",
                                             "--background": "#fff",
+                                            fontSize: "18px",
                                         }}
                                     >
+                                        <IonIcon icon={homeOutline} style={{ marginRight: '8px' }} />
                                         Address Information
                                     </IonItemDivider>
 
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Region:</strong> {profileData.region || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Province:</strong> {profileData.province || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
+                                    <IonGrid>
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Region:</strong> {profileData.region || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Province:</strong> {profileData.province || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
 
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>City/Municipality:</strong> {profileData.municipality || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Barangay:</strong> {profileData.barangay || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>City/Municipality:</strong> {profileData.municipality || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Barangay:</strong> {profileData.barangay || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
 
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Zipcode:</strong> {profileData.zipcode || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Zipcode:</strong> {profileData.zipcode || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
+                                    </IonGrid>
                                 </IonItemGroup>
 
                                 {/* Educational Background */}
                                 <IonItemGroup>
                                     <IonItemDivider
                                         style={{
-                                            "--color": "#000",
+                                            "--color": "#002d54",
                                             fontWeight: "bold",
                                             "--background": "#fff",
+                                            fontSize: "18px",
                                         }}
                                     >
+                                        <IonIcon icon={schoolOutline} style={{ marginRight: '8px' }} />
                                         Educational Background
                                     </IonItemDivider>
-                                    <IonRow>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Current Year Level:</strong> {profileData.current_year_level || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Highest Educational Attainment:</strong> {profileData.highest_educational_attainment || 'N/A'}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
+                                    
+                                    <IonGrid>
+                                        <IonRow>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Type of School:</strong> 
+                                                        <IonBadge color={profileData.type_of_school === 'Private' ? 'success' : 'primary'} style={{ marginLeft: '5px' }}>
+                                                            {profileData.type_of_school || 'N/A'}
+                                                        </IonBadge>
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                            <IonCol size="12" sizeMd="6">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Current Year Level:</strong> {profileData.current_year_level || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
+                                        
+                                        <IonRow>
+                                            <IonCol size="12">
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonLabel>
+                                                        <strong>Highest Educational Attainment:</strong> {profileData.highest_educational_attainment || 'N/A'}
+                                                    </IonLabel>
+                                                </IonItem>
+                                            </IonCol>
+                                        </IonRow>
+                                    </IonGrid>
                                 </IonItemGroup>
                             </IonCardContent>
                         </IonCard>
@@ -335,137 +418,376 @@ const ViewProfileModal: React.FC<ViewProfileModalProps> = ({ isOpen, onClose, pr
                         {partnerData && (
                             <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#fff", marginBottom: '20px' }}>
                                 <IonCardContent>
-                                    <h2 style={{ color: "black", fontWeight: "bold", backgroundColor: '#fff', padding: '10px', fontSize: '1.5rem', borderBottom: '2px solid #002d54' }}>
-                                        Partner Information
+                                    <h2 style={{ color: "black", fontWeight: "bold", backgroundColor: '#fff', padding: '10px', fontSize: '1.5rem', borderBottom: '2px solid #002d54', display: 'flex', alignItems: 'center' }}>
+                                        <IonIcon icon={heartOutline} style={{ marginRight: '10px' }} />
+                                        Teenage Father Information
                                     </h2>
 
+                                    {/* Basic Partner Information */}
                                     <IonItemGroup>
                                         <IonItemDivider
                                             style={{
-                                                "--color": "#000",
+                                                "--color": "#002d54",
                                                 fontWeight: "bold",
                                                 "--background": "#fff",
+                                                fontSize: "18px",
                                             }}
                                         >
-                                            Partner Details
+                                            <IonIcon icon={personOutline} style={{ marginRight: '8px' }} />
+                                            Basic Information
                                         </IonItemDivider>
 
-                                        <IonRow>
-                                            <IonCol size="12" sizeMd="6">
-                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                    <IonLabel>
-                                                        <strong>First Name:</strong> {partnerData.pFirstname || 'N/A'}
-                                                    </IonLabel>
-                                                </IonItem>
-                                            </IonCol>
-                                            <IonCol size="12" sizeMd="6">
-                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                    <IonLabel>
-                                                        <strong>Last Name:</strong> {partnerData.pLastname || 'N/A'}
-                                                    </IonLabel>
-                                                </IonItem>
-                                            </IonCol>
-                                        </IonRow>
+                                        <IonGrid>
+                                            <IonRow>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>First Name:</strong> {partnerData.pFirstname || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Last Name:</strong> {partnerData.pLastname || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
 
-                                        <IonRow>
-                                            <IonCol size="12" sizeMd="6">
-                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                    <IonLabel>
-                                                        <strong>Birthday:</strong> {partnerData.pBirthday || 'N/A'}
-                                                    </IonLabel>
-                                                </IonItem>
-                                            </IonCol>
-                                        </IonRow>
+                                            <IonRow>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Age:</strong> {partnerData.pAge || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Date of Birth:</strong> {partnerData.pBirthdate || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
 
-                                        <IonRow>
-                                            <IonCol size="12" sizeMd="6">
-                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                    <IonLabel>
-                                                        <strong>Occupation:</strong> {partnerData.pOccupation || 'N/A'}
-                                                    </IonLabel>
-                                                </IonItem>
-                                            </IonCol>
-                                            <IonCol size="12" sizeMd="6">
-                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                    <IonLabel>
-                                                        <strong>Income:</strong> {partnerData.pIncome || 'N/A'}
-                                                    </IonLabel>
-                                                </IonItem>
-                                            </IonCol>
-                                        </IonRow>
+                                            <IonRow>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Contact Number:</strong> {partnerData.contact_num || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Marital Status:</strong>
+                                                            <IonBadge color={partnerData.marital_status === 'Single' ? 'primary' : 'success'} style={{ marginLeft: '5px' }}>
+                                                                {partnerData.marital_status || 'N/A'}
+                                                            </IonBadge>
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
+
+                                            <IonRow>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Religion:</strong> {partnerData.religion || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Living With:</strong> {partnerData.living_with || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
+
+                                            <IonRow>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Occupation:</strong> {partnerData.pOccupation || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Income:</strong> {partnerData.pIncome || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
+
+                                            <IonRow>
+                                                <IonCol size="12">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Indigenous Ethnicity:</strong> 
+                                                            <IonBadge color={partnerData.indigenous_ethnicity ? 'success' : 'medium'} style={{ marginLeft: '5px' }}>
+                                                                {partnerData.indigenous_ethnicity || 'N/A'}
+                                                            </IonBadge>
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
+                                        </IonGrid>
+                                    </IonItemGroup>
+
+                                    {/* Partner Family Information */}
+                                    <IonItemGroup>
+                                        <IonItemDivider
+                                            style={{
+                                                "--color": "#002d54",
+                                                fontWeight: "bold",
+                                                "--background": "#fff",
+                                                fontSize: "18px",
+                                            }}
+                                        >
+                                            <IonIcon icon={peopleOutline} style={{ marginRight: '8px' }} />
+                                            Family Information
+                                        </IonItemDivider>
+
+                                        <IonGrid>
+                                            <IonRow>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Father's Occupation:</strong> {partnerData.fathers_occupation || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Father's Income:</strong> {partnerData.fathers_income || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
+
+                                            <IonRow>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Mother's Occupation:</strong> {partnerData.mothers_occupation || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Mother's Income:</strong> {partnerData.mothers_income || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
+                                        </IonGrid>
+                                    </IonItemGroup>
+
+                                    {/* Partner Address Information */}
+                                    <IonItemGroup>
+                                        <IonItemDivider
+                                            style={{
+                                                "--color": "#002d54",
+                                                fontWeight: "bold",
+                                                "--background": "#fff",
+                                                fontSize: "18px",
+                                            }}
+                                        >
+                                            <IonIcon icon={homeOutline} style={{ marginRight: '8px' }} />
+                                            Address Information
+                                        </IonItemDivider>
+
+                                        <IonGrid>
+                                            <IonRow>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Region:</strong> {partnerData.region || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Province:</strong> {partnerData.province || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
+
+                                            <IonRow>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>City/Municipality:</strong> {partnerData.municipality || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Barangay:</strong> {partnerData.barangay || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
+
+                                            <IonRow>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Zipcode:</strong> {partnerData.zipcode || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
+                                        </IonGrid>
+                                    </IonItemGroup>
+
+                                    {/* Partner Educational Background */}
+                                    <IonItemGroup>
+                                        <IonItemDivider
+                                            style={{
+                                                "--color": "#002d54",
+                                                fontWeight: "bold",
+                                                "--background": "#fff",
+                                                fontSize: "18px",
+                                            }}
+                                        >
+                                            <IonIcon icon={schoolOutline} style={{ marginRight: '8px' }} />
+                                            Educational Background
+                                        </IonItemDivider>
+                                        
+                                        <IonGrid>
+                                            <IonRow>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Type of School:</strong> 
+                                                            <IonBadge color={partnerData.type_of_school === 'Private' ? 'success' : 'primary'} style={{ marginLeft: '5px' }}>
+                                                                {partnerData.type_of_school || 'N/A'}
+                                                            </IonBadge>
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Current Year Level:</strong> {partnerData.current_year_level || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
+                                            
+                                            <IonRow>
+                                                <IonCol size="12">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Highest Educational Attainment:</strong> {partnerData.highest_educational_attainment || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
+                                        </IonGrid>
                                     </IonItemGroup>
                                 </IonCardContent>
                             </IonCard>
                         )}
 
                         {/* HEALTH STATUS */}
-                        {healthData && (
+                        {healthData ? (
                             <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#fff", marginBottom: '20px' }}>
                                 <IonCardContent>
-                                    <h2 style={{ color: "black", fontWeight: "bold", backgroundColor: '#fff', padding: '10px', fontSize: '1.5rem', borderBottom: '2px solid #002d54' }}>
-                                        Health Status
+                                    <h2 style={{ color: "black", fontWeight: "bold", backgroundColor: '#fff', padding: '10px', fontSize: '1.5rem', borderBottom: '2px solid #002d54', display: 'flex', alignItems: 'center' }}>
+                                        <IonIcon icon={medicalOutline} style={{ marginRight: '10px' }} />
+                                        Health Information
                                     </h2>
 
                                     <IonItemGroup>
                                         <IonItemDivider
                                             style={{
-                                                "--color": "#000",
+                                                "--color": "#002d54",
                                                 fontWeight: "bold",
                                                 "--background": "#fff",
+                                                fontSize: "18px",
                                             }}
                                         >
+                                            <IonIcon icon={medicalOutline} style={{ marginRight: '8px' }} />
                                             Pregnancy Information
                                         </IonItemDivider>
 
-                                        <IonRow>
-                                            <IonCol size="12" sizeMd="6">
-                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                    <IonLabel>
-                                                        <strong>Pregnancy Status:</strong>{' '}
-                                                        <IonBadge color={healthData.pregnancy_status === 'Pregnant' ? 'success' : 'medium'}>
-                                                            {healthData.pregnancy_status || 'N/A'}
-                                                        </IonBadge>
-                                                    </IonLabel>
-                                                </IonItem>
-                                            </IonCol>
-                                            <IonCol size="12" sizeMd="6">
-                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                    <IonLabel>
-                                                        <strong>Stage of Pregnancy:</strong> {healthData.stage_of_pregnancy || 'N/A'}
-                                                    </IonLabel>
-                                                </IonItem>
-                                            </IonCol>
-                                        </IonRow>
+                                        <IonGrid>
+                                            <IonRow>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Pregnancy Status:</strong>{' '}
+                                                            <IonBadge color={healthData.pregnancy_status === 'Pregnant' ? 'success' : 'medium'}>
+                                                                {healthData.pregnancy_status || 'N/A'}
+                                                            </IonBadge>
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                                <IonCol size="12" sizeMd="6">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel>
+                                                            <strong>Stage of Pregnancy:</strong> {healthData.stage_of_pregnancy || 'N/A'}
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
 
-                                        <IonRow>
-                                            <IonCol size="12">
-                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                    <IonLabel style={{ whiteSpace: 'normal' }}>
-                                                        <strong>Medical History:</strong>
-                                                        <div style={{ marginTop: '8px' }}>
-                                                            {formatMedicalHistory(healthData.medical_history).length > 0 ? (
-                                                                formatMedicalHistory(healthData.medical_history).map((condition: string, index: number) => (
-                                                                    <IonBadge
-                                                                        key={index}
-                                                                        color="danger"
-                                                                        style={{
-                                                                            margin: '4px',
-                                                                            padding: '8px 12px',
-                                                                            fontSize: '0.9rem'
-                                                                        }}
-                                                                    >
-                                                                        {condition}
-                                                                    </IonBadge>
-                                                                ))
-                                                            ) : (
-                                                                <em>No medical history recorded</em>
-                                                            )}
-                                                        </div>
-                                                    </IonLabel>
-                                                </IonItem>
-                                            </IonCol>
-                                        </IonRow>
+                                            <IonRow>
+                                                <IonCol size="12">
+                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                        <IonLabel style={{ whiteSpace: 'normal' }}>
+                                                            <strong>Medical History:</strong>
+                                                            <div style={{ marginTop: '8px' }}>
+                                                                {formatMedicalHistory(healthData.medical_history).length > 0 ? (
+                                                                    formatMedicalHistory(healthData.medical_history).map((condition: string, index: number) => (
+                                                                        <IonBadge
+                                                                            key={index}
+                                                                            color="danger"
+                                                                            style={{
+                                                                                margin: '4px',
+                                                                                padding: '8px 12px',
+                                                                                fontSize: '0.9rem'
+                                                                            }}
+                                                                        >
+                                                                            {condition}
+                                                                        </IonBadge>
+                                                                    ))
+                                                                ) : (
+                                                                    <em>No medical history recorded</em>
+                                                                )}
+                                                            </div>
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </IonCol>
+                                            </IonRow>
+                                        </IonGrid>
                                     </IonItemGroup>
+                                </IonCardContent>
+                            </IonCard>
+                        ) : (
+                            <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#fff", marginBottom: '20px' }}>
+                                <IonCardContent>
+                                    <h2 style={{ color: "black", fontWeight: "bold", backgroundColor: '#fff', padding: '10px', fontSize: '1.5rem', borderBottom: '2px solid #002d54', display: 'flex', alignItems: 'center' }}>
+                                        <IonIcon icon={medicalOutline} style={{ marginRight: '10px' }} />
+                                        Health Information
+                                    </h2>
+                                    <IonText color="medium">
+                                        <p style={{ textAlign: 'center', padding: '20px' }}>No health records available</p>
+                                    </IonText>
                                 </IonCardContent>
                             </IonCard>
                         )}

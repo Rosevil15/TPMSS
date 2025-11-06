@@ -10,12 +10,18 @@ interface ProfileData {
   contactnum: string;
   marital_status: string;
   living_with: string;
-  family_income: string;
   current_year_level: string;
   highest_educational_attainment: string;
   religion: string;
   fathers_occupation: string;
   mothers_occupation: string;
+  teenage_income: string;
+  teenage_occupation: string;
+  fathers_income: string;
+  mothers_income: string;
+  type_of_school: string;
+  indigenous_ethnicity: string;
+  multiple_partner_num: string;
 
   // Address info
   barangay: string;
@@ -33,20 +39,30 @@ interface PartnersData {
   pBirthdate: string;
   pOccupation: string;
   pIncome: string;
+  contact_num: string;
+  region: string;
+  province: string;
+  municipality: string;
+  barangay: string;
+  zipcode: string;
+  marital_status: string;
+  living_with: string;
+  current_year_level: string;
+  highest_educational_attainment: string;
+  religion: string;
+  fathers_occupation: string;
+  mothers_occupation: string;
+  fathers_income: string;
+  mothers_income: string;
+  type_of_school: string;
+  indigenous_ethnicity: string;
 }
 
-interface MaternalHealthData {
-    health_id: number;
-    profileid: number;
-    pregnancy_status: string;
-    medical_history: string;
-    types_of_support: string;
-    stage_of_pregnancy?: string; 
-}
+
 
 export async function saveCompleteProfile(
   profileData: ProfileData,
-  maternalHealthData: MaternalHealthData,
+
   partnersPayload: PartnersData
 ) {
   try {
@@ -61,24 +77,6 @@ export async function saveCompleteProfile(
 
     const profileid = profileResult[0].profileid;
 
-    //Insert into maternalhealthRecord table
-    const { data: healthResult, error: healthError } = await supabase
-      .from('maternalhealthRecord')
-      .insert([{...maternalHealthData, profileid}]);
-
-    if (healthError) {
-      // Rollback previous insertions
-      await supabase
-        .from('profile')
-        .delete()
-        .match({ profileid: profileid });
-      await supabase
-        .from('profile')
-        .delete()
-        .match({ profileid: profileid });
-      throw healthError;
-    }
-
     //Insert into partners table
     const {data: partnersResult, error: partnersError} = await supabase
       .from('partnersInfo')
@@ -89,7 +87,7 @@ export async function saveCompleteProfile(
         await supabase
           .from('maternalhealthRecord')
           .delete()
-          .match({ health_id: maternalHealthData.health_id });
+          .match({ health_id: profileData.profileid });
           throw partnersError;
       }
     return { success: true, message: "Profile information successfully saved" };

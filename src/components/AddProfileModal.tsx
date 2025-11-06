@@ -1,34 +1,10 @@
-import {
-    IonModal,
-    IonContent,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
-    IonButton,
-    IonCard,
-    IonCardContent,
-    IonItem,
-    IonLabel,
-    IonInput,
-    IonSelect,
-    IonSelectOption,
-    IonCardHeader,
-    IonCardTitle,
-    useIonActionSheet,
-    IonRow,
-    IonCol,
-    IonGrid,
-    IonItemGroup,
-    IonItemDivider,
-    IonCheckbox,
-    IonRadio,
-    IonRadioGroup,
-    IonSpinner
-} from '@ionic/react';
+import {IonModal,IonContent,IonHeader,IonToolbar,IonTitle,IonButton,IonCard,IonCardContent,IonItem,IonLabel,IonInput,IonSelect,IonSelectOption,IonCardHeader,IonCardTitle,useIonActionSheet,IonRow,IonCol,IonGrid,IonItemGroup,IonItemDivider,IonCheckbox,IonRadio,IonRadioGroup,IonSpinner} from '@ionic/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../utils/supabaseClients';
 import {saveCompleteProfile} from '../services/profileService';
 import { regions, provinces, city_mun, barangays } from 'phil-reg-prov-mun-brgy';
+import { contract } from 'ionicons/icons';
+import { Row } from 'jspdf-autotable';
 
 interface AddProfileModalProps {
     isOpen: boolean;
@@ -43,6 +19,8 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
    const [loading, setLoading] = useState(false);
    const [error, setError] = useState<string | null>(null);
    const [isIndigenous, setIsIndigenous] = useState<string>(''); 
+   const [isPartnerIndigenous, setIsPartnerIndigenous] = useState<string>('');
+   const [isMultiplePartners, setIsMultiplePartners] = useState<string>('');
 
    const [profileData, setProfileData] = useState<any>({
         firstName: '',  
@@ -58,31 +36,49 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
         marital_status: '',
         religion: '',
         living_with: '',
-        family_income: '',
         current_year_level: '',
         highest_educational_attainment: '',
         fathers_occupation: '',
         mothers_occupation: '',
         indigenous_ethnicity: '',
+        mothers_income: '',
+        fathers_income: '',
+        teenage_income: '',
+        teenage_occupation: '',
+        type_of_school: '',
+        multiple_partner_num: '',
    });
 
    const [partnersData, setPartnersData] = useState<any>({
-    pFirstname: '',
-    pLastname: '',
-    pAge: 0,
-    pBirthdate: '',
-    pOccupation: '',
-    pIncome: '',
-   });
+      pFirstname: '',
+      pLastname: '',
+      pAge: 0,
+      pBirthdate: '',
+      pOccupation: '',
+      pIncome: '',
+      contract_num: '',
+      region: '',
+      province: '',
+      municipality: '',
+      barangay: '',
+      zipcode: '',
+      marital_status: '',
+      living_with: '',
+      current_year_level: '',
+      highest_educational_attainment: '',
+      religion: '',
+      fathers_occupation: '',
+      mothers_occupation: '',
+      fathers_income: '',
+      mothers_income: '',
+      indigenous_ethnicity: '',
+      type_of_school: '',
+    });
 
+    const [partnersProvincelist, setPartnersProvincelist] = useState<any[]>([]);
+    const [partnersMunicipalitylist, setPartnersMunicipalitylist] = useState<any[]>([]);
+    const [partnersBarangaylist, setPartnersBarangaylist] = useState<any[]>([]);
 
-  const [healthData, setHealthData] = useState<any>({
-    pregnancy_status: '',
-    medical_history: [],
-    types_of_support: [],
-    stage_of_pregnancy: '',
-    medical_history_others: '',
-  });
 
   useEffect(() => {
        if (isOpen && editingProfile && isEditingProp) {
@@ -115,13 +111,8 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
               .eq('profileid', profileId)
               .maybeSingle();
           
-          // Fetch health data
-          const { data: health, error: healthError } = await supabase
-              .from('maternalhealthRecord')
-              .select('*')
-              .eq('profileid', profileId)
-              .maybeSingle();
-          
+          if (partnerError) throw partnerError;
+
           // Set profile data
           if (profile) {
               setProfileData({
@@ -138,18 +129,22 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
                   marital_status: profile.marital_status || '',
                   religion: profile.religion || '',
                   living_with: profile.living_with || '',
-                  family_income: profile.family_income || '',
                   current_year_level: profile.current_year_level || '',
                   highest_educational_attainment: profile.highest_educational_attainment || '',
                   fathers_occupation: profile.fathers_occupation || '',
                   mothers_occupation: profile.mothers_occupation || '',
                   indigenous_ethnicity: profile.indigenous_ethnicity || '',
+                  mothers_income: profile.mothers_income || '',
+                  fathers_income: profile.fathers_income || '',
+                  teenage_income: profile.teenage_income || '',
+                  teenage_occupation: profile.teenage_occupation || '',
+                  type_of_school: profile.type_of_school || '',
+                  multiple_partner_num: profile.multiple_partner_num || '',
               });
               
-              // Fix: Use 'Yes' and 'No' to match the radio group values
+              
               setIsIndigenous(profile.indigenous_ethnicity ? 'Yes' : 'No');
-
-              // Populate address dropdowns
+              // Set location dropdowns
               if (profile.region) {
                 //console.log('Finding region:', profile.region);
                 const region = regions.find((r: any) => r.name === profile.region);
@@ -163,53 +158,35 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
                     if (profile.province) {
                         
                         const province = filteredProvinces.find((p: any) => p.name === profile.province);
-                        console.log('Found province:', province);
-                        
+
                         if (province) {
                             const filteredMunicipalities = city_mun.filter((mun: { prov_code: string }) => mun.prov_code === province.prov_code);
                            
                             setMunicipalitylist(filteredMunicipalities);
                             
                             if (profile.municipality) {
-                                
                                 const municipality = filteredMunicipalities.find((m: any) => m.name === profile.municipality);
-                                console.log('Found municipality:', municipality);
                                 
                                 if (municipality) {
                                     const filteredBarangays = barangays.filter((brgy: { mun_code: string }) => brgy.mun_code === municipality.mun_code);
+                                    let foundBarangay = filteredBarangays.find((b: any) => b.name === profile.barangay);  
                                     
-                
-                                    // Try exact match first
-                                    let foundBarangay = filteredBarangays.find((b: any) => b.name === profile.barangay);
-                                    
-                                    // If not found, try case-insensitive match
-                                    if (!foundBarangay) {
-                                        
+                                    if (!foundBarangay) { 
                                         foundBarangay = filteredBarangays.find((b: any) => b.name.toLowerCase() === profile.barangay.toLowerCase());
                                     }
                                     
-                                    // If still not found, try trimmed match
-                                    if (!foundBarangay) {
-                                        
+                                    if (!foundBarangay) {  
                                         foundBarangay = filteredBarangays.find((b: any) => b.name.trim() === profile.barangay.trim());
-                                    }
-                                    
-                                   
-                                    
+                                    }                     
                                     setBarangaylist(filteredBarangays);
-                                } else {
-                                    console.log('Municipality not found in filtered list');
-                                }
+                                } 
                             }
-                        } else {
-                            console.log('Province not found in filtered list');
-                        }
+                        } 
                     }
-                } else {
-                    console.log('Region not found in regions list');
-                }
+                } 
+                
             }
-        }
+          }
           
           // Set partner data
           if (partner) {
@@ -220,22 +197,63 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
                   pBirthdate: partner.pBirthdate || '',
                   pOccupation: partner.pOccupation || '',
                   pIncome: partner.pIncome || '',
+                  contact_num: partner.contact_num || '',
+                  living_with: partner.living_with || '',
+                  marital_status: partner.marital_status || '',
+                  region: partner.region || '',
+                  province: partner.province || '',
+                  municipality: partner.municipality || '',
+                  barangay: partner.barangay || '',
+                  zipcode: partner.zipcode || '',
+                  current_year_level: partner.current_year_level || '',
+                  highest_educational_attainment: partner.highest_educational_attainment || '',
+                  religion: partner.religion || '',
+                  fathers_occupation: partner.fathers_occupation || '',
+                  mothers_occupation: partner.mothers_occupation || '',
+                  fathers_income: partner.fathers_income || '',
+                  mothers_income: partner.mothers_income || '',
+                  indigenous_ethnicity: partner.indigenous_ethnicity || '',
+                  type_of_school: partner.type_of_school || '',
               });
-          }
-          
-          // Set health data
-          if (health) {
-              const medicalHistory = health.medical_history ? health.medical_history.split(',').map((item: string) => item.trim()) : [];
-              const typesOfSupport = health.types_of_support ? health.types_of_support.split(',').map((item: string) => item.trim()) : [];
-              
-              setHealthData({
-                  pregnancy_status: health.pregnancy_status || '',
-                  medical_history: medicalHistory.filter((item: string) => !item.startsWith(' ')),
-                  types_of_support: typesOfSupport,
-                  stage_of_pregnancy: health.stage_of_pregnancy || '',
-                  medical_history_others: medicalHistory.find((item: string) => item.startsWith(' '))?.trim() || '',
-              });
-          }
+
+              setIsPartnerIndigenous(partner.indigenous_ethnicity ? 'Yes' : 'No');
+
+              if (partner.region) {
+                const region = regions.find((r: any) => r.name === partner.region);
+
+                if (region) {
+                  const filteredProvinces = provinces.filter((prov: { reg_code: string }) => prov.reg_code === region.reg_code);
+                  setPartnersProvincelist(filteredProvinces);
+                
+                  if (partner.province) {
+                    const province = provinces.find((p: any) => p.name === partner.province);
+
+                    if (province) {
+                      const filteredMunicipalities = city_mun.filter((mun: { prov_code: string }) => mun.prov_code === province.prov_code);
+                      setPartnersMunicipalitylist(filteredMunicipalities);
+
+                      if (partner.municipality) {
+                        const municipality = filteredMunicipalities.find((m: any) => m.name === partner.municipality);
+
+                        if (municipality) {
+                          const filteredBarangays = barangays.filter((brgy: { mun_code: string }) => brgy.mun_code === municipality.mun_code);
+                          setPartnersBarangaylist(filteredBarangays);
+                          let foundBarangay = filteredBarangays.find((b: any) => b.name === partner.barangay);
+                          
+                          if (!foundBarangay) {
+                            foundBarangay = filteredBarangays.find((b: any) => b.name === partner.barangay);
+                          }
+                          if (!foundBarangay) {
+                            foundBarangay = filteredBarangays.find((b: any) => b.name.toLowerCase() === partner.barangay.toLowerCase());
+                            setPartnersBarangaylist(filteredBarangays);
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
       } catch (err: any) {
           console.error('Error loading profile for editing:', err);
           setError(err.message || 'Failed to load profile data');
@@ -246,48 +264,69 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
 
    const resetForm = () => {
        setProfileData({
-           firstName: '',
-           lastName: '',
-           age: 0,
-           birthdate: '',
-           contactnum: '',
-           barangay: '',
-           municipality: '',
-           province: '',
-           region: '',
-           zipcode: '',
-           marital_status: '',
-           religion: '',
-           living_with: '',
-           family_income: '',
-           current_year_level: '',
-           highest_educational_attainment: '',
-           fathers_occupation: '',
-           mothers_occupation: '',
-           indigenous_ethnicity: '',
+          firstName: '',
+          lastName: '',
+          age: 0,
+          birthdate: '',
+          contactnum: '',
+          barangay: '',
+          municipality: '',
+          province: '',
+          region: '',
+          zipcode: '',
+          marital_status: '',
+          religion: '',
+          living_with: '',
+          current_year_level: '',
+          highest_educational_attainment: '',
+          fathers_occupation: '',
+          mothers_occupation: '',
+          indigenous_ethnicity: '',
+          mothers_income: '',
+          fathers_income: '',
+          teenage_income: '',
+          teenage_occupation: '',
+          type_of_school: '',
+          multiple_partner_num: '',
        });
 
        setPartnersData({
-           pFirstname: '',
-           pLastname: '',
-           pAge: 0,
-           pBirthdate: '',
-           pOccupation: '',
-           pIncome: '',
-       });
-
-       setHealthData({
-           pregnancy_status: '',
-           medical_history: [],
-           types_of_support: [],
-           stage_of_pregnancy: '',
-           medical_history_others: '',
+          pFirstname: '',
+          pLastname: '',
+          pAge: 0,
+          pBirthdate: '',
+          pOccupation: '',
+          pIncome: '',
+          contact_num: '',
+          living_with: '',
+          marital_status: '',
+          region: '',
+          province: '',
+          municipality: '',
+          barangay: '',
+          zipcode: '',
+          current_year_level: '',
+          highest_educational_attainment: '',
+          religion: '',
+          fathers_occupation: '',
+          mothers_occupation: '',
+          fathers_income: '',
+          mothers_income: '',
+          type_of_school: '',
+          
+          
        });
        
       setProvincelist([]);
       setMunicipalitylist([]);
       setBarangaylist([]);
+
+      setPartnersProvincelist([]);
+      setPartnersMunicipalitylist([]);
+      setPartnersBarangaylist([]);
+   
       setIsIndigenous('');
+      setIsPartnerIndigenous('');
       setError(null);
    };
    
@@ -334,7 +373,6 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
       }
 
       const partnerid = profileId;
-      const healthid = profileId;
       
       // Prepare payloads
       const profilePayload = {
@@ -352,12 +390,17 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
         marital_status: profileData.marital_status || '',
         religion: profileData.religion || '',
         living_with: profileData.living_with || '',
-        family_income: profileData.family_income || '',
         current_year_level: profileData.current_year_level || '',
         highest_educational_attainment: profileData.highest_educational_attainment || '',
         fathers_occupation: profileData.fathers_occupation || '',
         mothers_occupation: profileData.mothers_occupation || '',
         indigenous_ethnicity: profileData.indigenous_ethnicity || '',
+        teenage_income: profileData.teenage_income || '',
+        teenage_occupation: profileData.teenage_occupation || '',
+        mothers_income: profileData.mothers_income || '',
+        fathers_income: profileData.fathers_income || '',
+        type_of_school: profileData.type_of_school || '',
+        multiple_partner_num: profileData.multiple_partner_num || '',
       };
 
       const partnersPayload = {
@@ -369,19 +412,25 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
         pBirthdate: partnersData.pBirthdate || '',
         pOccupation: partnersData.pOccupation || '',
         pIncome: partnersData.pIncome || '',
+        contact_num: partnersData.contact_num || '',
+        region: partnersData.region || '',
+        province: partnersData.province || '',
+        municipality: partnersData.municipality || '',
+        barangay: partnersData.barangay || '',
+        zipcode: partnersData.zipcode || '',
+        marital_status: partnersData.marital_status || '',
+        living_with: partnersData.living_with || '',
+        current_year_level: partnersData.current_year_level || '',
+        highest_educational_attainment: partnersData.highest_educational_attainment || '',
+        religion: partnersData.religion || '',
+        fathers_occupation: partnersData.fathers_occupation || '',
+        mothers_occupation: partnersData.mothers_occupation || '',
+        fathers_income: partnersData.fathers_income || '',
+        mothers_income: partnersData.mothers_income || '',
+        indigenous_ethnicity: partnersData.indigenous_ethnicity || '',
+        type_of_school: partnersData.type_of_school || '',
       };
       
-      const healthPayload = {
-        health_id: healthid,
-        profileid: profileId,
-        pregnancy_status: healthData.pregnancy_status || '',
-        medical_history: [
-          ...healthData.medical_history,
-          ...(healthData.medical_history_others ? [` ${healthData.medical_history_others}`] : [])
-        ].join(',') || '',
-        types_of_support: healthData.types_of_support?.join(',') || '',
-        stage_of_pregnancy: healthData.stage_of_pregnancy || '',
-      };
       
       if (isEditing) {
             // Update existing records
@@ -416,35 +465,11 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
                 if (partnerError) throw partnerError;
             }
             
-            // Check if health record exists
-            const { data: existingHealth } = await supabase
-                .from('maternalhealthRecord')
-                .select('health_id')
-                .eq('profileid', profileId)
-                .maybeSingle();
-            
-            if (existingHealth) {
-                // Update existing health record
-                const { error: healthError } = await supabase
-                    .from('maternalhealthRecord')
-                    .update(healthPayload)
-                    .eq('profileid', profileId);
-                
-                if (healthError) throw healthError;
-            } else {
-                // Insert new health record
-                const { error: healthError } = await supabase
-                    .from('maternalhealthRecord')
-                    .insert(healthPayload);
-                
-                if (healthError) throw healthError;
-            }
             
             // Call onSave prop
             await onSave({
                 ...profilePayload,
                 partner: partnersPayload,
-                health: healthPayload
             });
             
             resetForm();
@@ -453,7 +478,6 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
           // Save new profile using the service function
           const result = await saveCompleteProfile(
             profilePayload,
-            healthPayload,
             partnersPayload
           );
           
@@ -461,7 +485,6 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
             await onSave({
               ...profilePayload,
               partner: partnersPayload,
-              health: healthPayload
             });
             
             resetForm();
@@ -487,131 +510,155 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
     // Map field names to match the database column names
     const fieldNameMapping: Record<string, string> = {
       firstName: "firstName", 
-      lastName: "lastName"   
+      lastName: "lastName",
+      // Partner field mappings - remove 'p' prefix for database
+      pMarital_status: "marital_status",
+      pReligion: "religion",
+      pLiving_with: "living_with",
+      pCurrent_year_level: "current_year_level",
+      pHighest_educational_attainment: "highest_educational_attainment",
+      pType_of_school: "type_of_school",
+      pIndigenous_ethnicity: "indigenous_ethnicity",
+      pRegion: "region",
+      pProvince: "province",
+      pMothers_occupation: "mothers_occupation",
+      pFathers_occupation: "fathers_occupation",
+      pMothers_income: "mothers_income",
+      pFathers_income: "fathers_income",
+      pMunicipality: "municipality",
+      pBarangay: "barangay",
+      pZipcode: "zipcode"
     };
 
-    // Profile data fields
-    if (["firstName", "lastName", "age", "birthdate", "contactnum", "barangay", "municipality",
-          "province","region", "zipcode", "marital_status", "religion", "living_with","partner_occupation",
-          "family_income","current_year_level","highest_educational_attainment","fathers_occupation",
-          "mothers_occupation", "indigenous_ethnicity"].includes(field)) {
-      setProfileData((prevData: any) => ({
-        ...prevData,
-        [fieldNameMapping[field] || field]: field === "age" ? Number(value) : value
-      }));
-    }
-
-    // Partner data fields
-    else if (["pFirstname", "pLastname", "pAge", "pBirthdate", "pOccupation", "pIncome"].includes(field)) {
+    // Partner data fields - check for 'p' prefix or specific partner-only fields
+    if (field.startsWith('p') || field === "contact_num") {
       setPartnersData((prevData: any) => ({
         ...prevData,
         [fieldNameMapping[field] || field]: field === "pAge" ? Number(value) : value
       }));
     }
-    
-    // Health data fields
-    else if (field === "pregnancy_status") {
-      setHealthData((prevData: any) => ({
-        ...prevData,
-        pregnancy_status: value
-      }));
-    }
-    else if (field === "stage_of_pregnancy") {
-      setHealthData((prevData: any) => ({
-        ...prevData,
-        stage_of_pregnancy: value
-      }));
-    }
-    else if (field === "medical_history_others") {
-      setHealthData((prevData: any) => ({
-        ...prevData,
-        medical_history_others: value
-      }));
-    }
-    // For checkboxes (medical history and support needs)
-    else if (field.startsWith("medical_")) {
-      const condition = field.replace("medical_", "");
-      setHealthData((prevData: any) => {
-       const currentHistory = prevData.medical_history || [];
-        const updatedMedicalHistory = value 
-          ? [...currentHistory, condition] 
-          : currentHistory.filter((item: string) => item !== condition);
-        
-        return {
+    // Profile data fields (Teenage Mother) - everything else
+    else {
+        setProfileData((prevData: any) => ({
           ...prevData,
-          medical_history: updatedMedicalHistory
-        };
-      });
+          [fieldNameMapping[field] || field]: field === "age" ? Number(value) : value
+        }));
     }
-    else if (field.startsWith("support_")) {
-      const support = field.replace("support_", "");
-      setHealthData((prevData: any) => {
-        const currentSupport = prevData.types_of_support || [];
-        const updatedSupportNeeds = value 
-          ? [...currentSupport, support] 
-          : currentSupport.filter((item: string) => item !== support);
-        
-        return {
-          ...prevData,
-          types_of_support: updatedSupportNeeds
-        };
-      });
-    }
-  };
+};
 
   const [regionlist, setRegionlist] = useState<any[]>(regions);
   const [provincelist, setProvincelist] = useState<any[]>([]);
   const [municipalitylist, setMunicipalitylist] = useState<any[]>([]);
   const [barangaylist, setBarangaylist] = useState<any[]>([]);
 
-  const handleRegionChange = (regionCode: string) => {
-    const filteredProvinces = provinces
-      .filter((prov: { reg_code: string }) => prov.reg_code === regionCode);
-     // console.log("Filtered Provinces:", filteredProvinces); 
-      setProvincelist(filteredProvinces);
-      setMunicipalitylist([]);
-      setBarangaylist([]);
+const handleRegionChange = (regionCode: string) => {
+  const filteredProvinces = provinces
+    .filter((prov: { reg_code: string }) => prov.reg_code === regionCode);
+  
+  // Clear dependent fields in profileData immediately
+  setProfileData((prev: any) => ({
+    ...prev,
+    province: '',
+    municipality: '',
+    barangay: ''
+  }));
+  
+  // Update location states
+  setProvincelist(filteredProvinces);
+  setMunicipalitylist([]);
+  setBarangaylist([]);
 
-      const selectedRegion = regionlist.find((r: any) => r.reg_code === regionCode);
-      handleChange("region", selectedRegion?.name || regionCode);
-  };
+  const selectedRegion = regionlist.find((r: any) => r.reg_code === regionCode);
+  setProfileData((prev: any) => ({
+    ...prev,
+    region: selectedRegion?.name || regionCode
+  }));
+};
 
-  const handleProvinceChange = (provinceCode: string) => {
-    const filteredMunicipalities = city_mun
+const handleProvinceChange = (provinceCode: string) => {
+  const filteredMunicipalities = city_mun
     .filter((mun: { prov_code: string }) => mun.prov_code === provinceCode);
-   // console.log("Filtered Municipalities:", filteredMunicipalities);
-    setMunicipalitylist(filteredMunicipalities);
-    setBarangaylist([]);
+  
+  // Clear dependent fields in profileData immediately
+  setProfileData((prev: any) => ({
+    ...prev,
+    municipality: '',
+    barangay: ''
+  }));
+  
+  // Update location states
+  setMunicipalitylist(filteredMunicipalities);
+  setBarangaylist([]);
 
-    const selectedProvince = provincelist.find((p: any) => p.prov_code === provinceCode);
-    handleChange("province", selectedProvince?.name || provinceCode);
+  const selectedProvince = provincelist.find((p: any) => p.prov_code === provinceCode);
+  setProfileData((prev: any) => ({
+    ...prev,
+    province: selectedProvince?.name || provinceCode
+  }));
 };
 
 const handleMunicipalityChange = (municipalityCode: string) => {
   const filteredBarangays = barangays
-  .filter((brgy: { mun_code: string }) => brgy.mun_code === municipalityCode);
- // console.log("Filtered Barangays:", filteredBarangays);
+    .filter((brgy: { mun_code: string }) => brgy.mun_code === municipalityCode);
+  
+  // Clear dependent fields in profileData immediately
+  setProfileData((prev: any) => ({
+    ...prev,
+    barangay: ''
+  }));
+  
+  // Update location states
   setBarangaylist(filteredBarangays);
 
   const selectedMunicipality = municipalitylist.find((m: any) => m.mun_code === municipalityCode);
-  handleChange("municipality", selectedMunicipality?.name || municipalityCode);
+  setProfileData((prev: any) => ({
+    ...prev,
+    municipality: selectedMunicipality?.name || municipalityCode
+  }));
 };
 
-  const handleBarangayChange = (barangayName: string) => {
-    console.log("Selected Barangay:", barangayName);
-    handleChange("barangay", barangayName);
+
+// Partner address handlers
+  const handlePartnerRegionChange = (regionCode: string) => {
+    const filteredProvinces = provinces
+      .filter((prov: { reg_code: string }) => prov.reg_code === regionCode);
+      setPartnersProvincelist(filteredProvinces);
+      setPartnersMunicipalitylist([]);
+      setPartnersBarangaylist([]);
+
+    const selectedRegion = regionlist.find((r: any) => r.reg_code === regionCode);
+    handleChange("pRegion", selectedRegion?.name || regionCode);
   };
 
-const Occupations = [
-    "Managers", "Professionals", "Technicians and Associate Professionals", "Clerical Support Workers", "Service Workers",
-    "Skilled Agricultural, Forestry and Fishery Workers", "Craft and Related Trades Workers", "Plant and Machine Operators and Assemblers",
-    "Elementary Occupations", "Armed Forces Occupations", "Not Working"
-];
+  const handlePartnerProvinceChange = (provinceCode: string) => {
+    const filteredMunicipalities = city_mun
+      .filter((mun: { prov_code: string }) => mun.prov_code === provinceCode);
+      setPartnersMunicipalitylist(filteredMunicipalities);
+      setPartnersBarangaylist([]);
 
-const Income = [
-    "None", "Less than ₱10,000", "₱10,000 - ₱29,588", "₱29,589 - ₱39,999", "₱40,000 - ₱59,999",
-    "₱60,000 - ₱99,999", "₱100,000 - ₱249,999", "₱250,000 - ₱499,999", "₱500,000 and Over"
-];
+    const selectedProvince = partnersProvincelist.find((p: any) => p.prov_code === provinceCode);
+      handleChange("pProvince", selectedProvince?.name || provinceCode);
+  };
+
+  const handlePartnerMunicipalityChange = (municipalityCode: string) => {
+    const filteredBarangays = barangays
+      .filter((brgy: { mun_code: string }) => brgy.mun_code === municipalityCode);
+    setPartnersBarangaylist(filteredBarangays);
+
+    const selectedMunicipality = partnersMunicipalitylist.find((m: any) => m.mun_code === municipalityCode);
+    handleChange("pMunicipality", selectedMunicipality?.name || municipalityCode);
+  };
+
+  const Occupations = [
+      "Managers", "Professionals", "Technicians and Associate Professionals", "Clerical Support Workers", "Service Workers",
+      "Skilled Agricultural, Forestry and Fishery Workers", "Craft and Related Trades Workers", "Plant and Machine Operators and Assemblers",
+      "Elementary Occupations", "Armed Forces Occupations", "Not Working"
+  ];
+
+  const Income = [
+      "None", "Less than ₱10,000", "₱10,000 - ₱29,588", "₱29,589 - ₱39,999", "₱40,000 - ₱59,999",
+      "₱60,000 - ₱99,999", "₱100,000 - ₱249,999", "₱250,000 - ₱499,999", "₱500,000 and Over"
+  ];
 
     return (
         <IonModal isOpen={isOpen} onDidDismiss={onClose} style={{'--width':'100%','--height':'100%',}} >
@@ -655,16 +702,17 @@ const Income = [
                 Registration Form
               </h2>
 
-            {/* BASIC INFORMATION */}
+            {/* Teenage Mother Basic INFORMATION */}
             <IonItemGroup>
               <IonItemDivider
                 style={{
-                  "--color": "#000",
+                  "--color": "#002d54",
                   fontWeight: "bold",
                   "--background": "#fff",
+                  fontSize: "20px",
                 }}
               >
-                Teenage Basic Information
+                Teenage Mother's Basic Information
               </IonItemDivider>
                 <IonGrid>
                   <IonRow>
@@ -825,6 +873,7 @@ const Income = [
                           <IonSelectOption value="Living with Relatives">Relatives</IonSelectOption>
                           <IonSelectOption value="Living with Partners">Partner</IonSelectOption>
                           <IonSelectOption value="Not living with Parents">Not living with Parents</IonSelectOption>
+                          <IonSelectOption value="Alone">Alone</IonSelectOption>
                         </IonSelect>
                       </IonItem>
                     </IonCol>    
@@ -833,10 +882,52 @@ const Income = [
 
                 <IonGrid>
                   <IonRow>
+                    {/* Teenage Mother occupation */}
+                    <IonCol size='12' size-md='6'>
+                      <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                        <IonSelect
+                                className='ion-margin'
+                                label="Teenage Mother Occupation"
+                                fill="outline"
+                                labelPlacement="floating"
+                                style={{ "--color": "#000" }}
+                                value={profileData.teenage_occupation}
+                                onIonChange={(e) => handleChange("teenage_occupation", e.detail.value!)}
+                        >
+                          {Occupations.map((occupation, index) => (
+                            <IonSelectOption key={index} value={occupation}>{occupation}</IonSelectOption>
+                          ))}
+                        </IonSelect>
+                      </IonItem>
+                    </IonCol>
+
+                    {/* Teenage Mother Income */}
+                    <IonCol size='12' size-md='6'>
+                      <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                        <IonSelect
+                                className='ion-margin'
+                                label="Teenage Mother Income"
+                                fill="outline"
+                                labelPlacement="floating"
+                                style={{ "--color": "#000" }}
+                                value={profileData.teenage_income}
+                                onIonChange={(e) => handleChange("teenage_income", e.detail.value!)}
+                        >
+                          {Income.map((incomeRange, index) => (
+                            <IonSelectOption key={index} value={incomeRange}>{incomeRange}</IonSelectOption>
+                          ))}
+                        </IonSelect>
+                      </IonItem>
+                    </IonCol>
+                  </IonRow>
+                </IonGrid>
+
+                <IonGrid>
+                  <IonRow>
                   {/*Indigenous Ethnicity */}
-                         <IonLabel style={{ fontWeight: 'bold', color: '#000', }}>
-                          Member of Indigenous People?
-                        </IonLabel>
+                  <IonLabel style={{ fontWeight: 'bold', color: '#000', }}>
+                  Member of Indigenous Cultural Community?
+                  </IonLabel>
                     <IonCol >
                       <IonItem lines="none" style={{"--background": "#fff","--color": "#000","--background-hover": "transparent",}}>
 
@@ -854,21 +945,24 @@ const Income = [
                             marginTop: "0.5rem",
                           }}
                         >
-                          <IonItem lines="none" style={{ "--background": "#fff" }}>
-                              <IonRadio value="Yes">Yes</IonRadio>
-                          </IonItem>
-                          <IonItem lines="none" style={{ "--background": "#fff" }}>
-                              <IonRadio value="No">No</IonRadio>
-                          </IonItem>
+                          <IonRow>
+                            <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                <IonRadio value="Yes">Yes</IonRadio>
+                            </IonItem>
+                            <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                <IonRadio value="No">No</IonRadio>
+                            </IonItem>
+                          </IonRow>
                         </IonRadioGroup>
                       </IonItem>
+
                     </IonCol>
                     
                     <IonCol size='12' size-md='6'>
                         <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
                           <IonInput
                             className='ion-margin'
-                            label="Specify Indigenous People"
+                            label="Specify Indigenous Cultural Community"
                             type="text"
                             labelPlacement="floating"
                             fill="outline"
@@ -886,194 +980,85 @@ const Income = [
 
                 <IonGrid>
                   <IonRow>
-                  {/*Fathers Occupation*/}
-                  <IonCol size='12' size-md='6'>
-                    <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
-                      <IonSelect
-                              className='ion-margin'
-                              label="Fathers Occupation"
-                              fill="outline"
-                              labelPlacement="floating"
-                              style={{ "--color": "#000" }}
-                              value={profileData.fathers_occupation}
-                              onIonChange={(e) => handleChange("fathers_occupation", e.detail.value!)}
-                          >
-                            {Occupations.map((occupation, index) => (
-                              <IonSelectOption key={index} value={occupation}>{occupation}</IonSelectOption>
-                            ))}
-                          </IonSelect>
-                    </IonItem>
-                  </IonCol>
+                    {/*Fathers Occupation*/}
+                    <IonCol size='12' size-md='6'>
+                      <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                        <IonSelect
+                                className='ion-margin'
+                                label="Father's Occupation"
+                                fill="outline"
+                                labelPlacement="floating"
+                                style={{ "--color": "#000" }}
+                                value={profileData.fathers_occupation}
+                                onIonChange={(e) => handleChange("fathers_occupation", e.detail.value!)}
+                            >
+                              {Occupations.map((occupation, index) => (
+                                <IonSelectOption key={index} value={occupation}>{occupation}</IonSelectOption>
+                              ))}
+                            </IonSelect>
+                      </IonItem>
+                    </IonCol>
 
-                  {/*Mothers Occupation*/}
-                  <IonCol size='12' size-md='6'>
-                    <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
-                      <IonSelect
-                              className='ion-margin'
-                              label="Mothers Occupation"
-                              fill="outline"
-                              labelPlacement="floating"
-                              style={{ "--color": "#000" }}
-                              value={profileData.mothers_occupation}
-                              onIonChange={(e) => handleChange("mothers_occupation", e.detail.value!)}
-                          >
-                            {Occupations.map((occupation, index) => (
-                              <IonSelectOption key={index} value={occupation}>{occupation}</IonSelectOption>
-                            ))}
-                          </IonSelect>
-                    </IonItem>
-                  </IonCol>
+                    <IonCol size='12' size-md='6'>
+                      <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                        <IonSelect
+                                className='ion-margin'
+                                label="Father's Income"
+                                fill="outline"
+                                labelPlacement="floating"
+                                style={{ "--color": "#000" }}
+                                value={profileData.fathers_income}
+                                onIonChange={(e) => handleChange("fathers_income", e.detail.value!)}
+                            >
+                              {Income.map((incomeRange, index) => (
+                                <IonSelectOption key={index} value={incomeRange}>{incomeRange}</IonSelectOption>
+                              ))}
+                            </IonSelect>
+                      </IonItem>
+                    </IonCol>
                   </IonRow>
                 </IonGrid>
 
                 <IonGrid>
                   <IonRow>
-                  {/*Family Income*/}
-                  <IonCol size='12' size-md='6'>
-                    <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
-                      <IonSelect
-                              className='ion-margin'
-                              label="Family Income"
-                              fill="outline"
-                              labelPlacement="floating"
-                              value={profileData.family_income}
-                              style={{ "--color": "#000" }}
-                              onIonChange={(e) => handleChange("family_income", e.detail.value!)}
-                          >
-                            {Income.map((incomeRange, index) => (
-                              <IonSelectOption key={index} value={incomeRange}>{incomeRange}</IonSelectOption>
-                            ))}
-                          </IonSelect>
-                    </IonItem>
-                  </IonCol>
+                  {/*Mothers Occupation*/}
+                    <IonCol size='12' size-md='6'>
+                      <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                        <IonSelect
+                                className='ion-margin'
+                                label="Mother's Occupation"
+                                fill="outline"
+                                labelPlacement="floating"
+                                style={{ "--color": "#000" }}
+                                value={profileData.mothers_occupation}
+                                onIonChange={(e) => handleChange("mothers_occupation", e.detail.value!)}
+                            >
+                              {Occupations.map((occupation, index) => (
+                                <IonSelectOption key={index} value={occupation}>{occupation}</IonSelectOption>
+                              ))}
+                            </IonSelect>
+                      </IonItem>
+                    </IonCol>
+
+                    <IonCol size='12' size-md='6'>
+                      <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                        <IonSelect
+                                className='ion-margin'
+                                label="Mother's Income"  
+                                fill="outline"
+                                labelPlacement="floating"
+                                style={{ "--color": "#000" }}
+                                value={profileData.mothers_income}
+                                onIonChange={(e) => handleChange("mothers_income", e.detail.value!)}
+                            >
+                              {Income.map((incomeRange, index) => (
+                                <IonSelectOption key={index} value={incomeRange}>{incomeRange}</IonSelectOption>
+                              ))}
+                            </IonSelect>
+                      </IonItem>
+                    </IonCol>
                   </IonRow>
                 </IonGrid>
-            </IonItemGroup>
-
-            {/*PARTNER INFORMATION */}
-            <IonItemGroup>
-              <IonItemDivider
-                style={{
-                  "--color": "#000",
-                  fontWeight: "bold",
-                  "--background": "#fff",
-                }}
-              >
-                Partner`s Information
-              </IonItemDivider>
-
-              <IonGrid>
-                <IonRow>
-                  {/* Partner's First Name */}
-                  <IonCol size='12' size-md='6'>
-                    <IonItem lines="none" style={{ "--background": "#fff", }}>
-                      <IonInput
-                        className='ion-margin'
-                        type="text" 
-                        label="Partner's First Name"
-                        labelPlacement="floating"
-                        fill='outline'
-                        style={{ "--color": "#000" }}
-                        value={partnersData.pFirstname}
-                        onIonChange={(e) => handleChange("pFirstname", e.detail.value!)}
-                      />
-                    </IonItem>
-                  </IonCol>
-                  {/* Partner's Last Name */}
-                  <IonCol size='12' size-md='6'>
-                    <IonItem lines="none" style={{ "--background": "#fff", }}>
-                      <IonInput
-                        className='ion-margin'
-                        type="text" 
-                        label="Partner's Last Name"
-                        labelPlacement="floating"
-                        fill='outline'
-                        style={{ "--color": "#000" }}
-                        value={partnersData.pLastname}
-                        onIonChange={(e) => handleChange("pLastname", e.detail.value!)}
-                      />
-                    </IonItem>
-                  </IonCol>
-                </IonRow>
-              </IonGrid>
-
-              <IonGrid>
-                <IonRow>
-                  {/* Partner's Age */}
-                  <IonCol size='12' size-md='6'>
-                    <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
-                      <IonInput
-                        className='ion-margin'
-                        type="number" 
-                        label="Partner's Age"
-                        fill='outline'
-                        labelPlacement="floating"
-                        style={{ "--color": "#000" }}
-                        value={partnersData.pAge}
-                        onIonChange={(e) => handleChange("pAge", e.detail.value!)}
-                      />
-                    </IonItem>
-                  </IonCol>
-                  {/* Date of Birth */}
-                  <IonCol size='12' size-md='6'>
-                    <IonItem lines="none" style={{ "--background": "#fff" }}>
-                      <IonInput
-                          className='ion-margin'
-                          label="Date of Birth"
-                          type="date"
-                          labelPlacement="floating"
-                          fill="outline"
-                          style={{ "--color": "#000" }}
-                          value={partnersData.pBirthdate}
-                          onIonChange={(e) =>
-                              handleChange("pBirthdate", e.detail.value!)
-                          }
-                      />
-                    </IonItem>
-                  </IonCol>
-                </IonRow>
-              </IonGrid>
-
-              <IonGrid>
-                <IonRow>
-                {/*Partner Occupation */}
-                <IonCol size='12' size-md='6'>
-                  <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
-                    <IonSelect
-                            className='ion-margin'
-                            label="Partner Occupation"
-                            fill="outline"
-                            labelPlacement="floating"
-                            style={{ "--color": "#000" }}
-                            value={partnersData.pOccupation}
-                            onIonChange={(e) => handleChange("pOccupation", e.detail.value!)}
-                        >
-                          {Occupations.map((occupation, index) => (
-                            <IonSelectOption key={index} value={occupation}>{occupation}</IonSelectOption>
-                          ))}
-                        </IonSelect>
-                  </IonItem>
-                </IonCol>
-                {/*Partner Income*/}
-                <IonCol size='12' size-md='6'>
-                  <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
-                    <IonSelect
-                            className='ion-margin'
-                            label="Partner Income"
-                            fill="outline"
-                            labelPlacement="floating"
-                            style={{ "--color": "#000" }}
-                            value={partnersData.pIncome}
-                            onIonChange={(e) => handleChange("pIncome", e.detail.value!)}
-                        >
-                          {Income.map((incomeRange, index) => (
-                            <IonSelectOption key={index} value={incomeRange}>{incomeRange}</IonSelectOption>
-                          ))}
-                        </IonSelect>
-                  </IonItem>
-                </IonCol>             
-                </IonRow>
-              </IonGrid>
             </IonItemGroup>
 
             {/* ADDRESS */}
@@ -1099,7 +1084,7 @@ const Income = [
                           fill="outline" 
                           labelPlacement="floating" 
                           style={{ "--color": "#000", "--background-activated": "transparent" }}
-                          value={regionlist.find((r: any) => r.name === profileData.region)?.reg_code || ''}
+                          value={profileData.region ? (regionlist.find((r: any) => r.name === profileData.region)?.reg_code || '') : ''}
                           onIonChange={(e) => handleRegionChange(e.detail.value)}>
                           {regionlist.map((r, index) => (
                           <IonSelectOption key={`reg-${r.reg_code}-${index}`} value={r.reg_code}>{r.name}</IonSelectOption>
@@ -1115,8 +1100,9 @@ const Income = [
                           label="Province" fill="outline" 
                           labelPlacement="floating" 
                           style={{ "--color": "#000" }} 
-                          value={provincelist.find((p: any) => p.name === profileData.province)?.prov_code || ''} 
-                          onIonChange={(e) => handleProvinceChange(e.detail.value)} disabled={provincelist.length === 0}>
+                          value={profileData.province && provincelist.length > 0 ? (provincelist.find((p: any) => p.name === profileData.province)?.prov_code || '') : ''}
+                          onIonChange={(e) => handleProvinceChange(e.detail.value)} 
+                          disabled={provincelist.length === 0}>
                           {provincelist.map((p, index) => (
                             <IonSelectOption key={`prov-${p.prov_code}-${index}`} value={p.prov_code}>{p.name}</IonSelectOption>
                           ))}
@@ -1136,12 +1122,12 @@ const Income = [
                           label="Municipality" fill="outline" 
                           labelPlacement="floating" 
                           style={{ "--color": "#000" }} 
-                          value={municipalitylist.find((m: any) => m.name === profileData.municipality)?.mun_code || ''}
+                          value={profileData.municipality && municipalitylist.length > 0 ? (municipalitylist.find((m: any) => m.name === profileData.municipality)?.mun_code || '') : ''}
                           onIonChange={(e) => handleMunicipalityChange(e.detail.value)} disabled={municipalitylist.length === 0}>
                           {municipalitylist.map((m, index) => (
                             <IonSelectOption key={`mun-${m.mun_code}-${index}`} value={m.mun_code}>{m.name}</IonSelectOption>
                           ))}
-                        </IonSelect>
+                      </IonSelect>
                     </IonItem>
                   </IonCol>
 
@@ -1206,7 +1192,7 @@ const Income = [
                         <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
                           <IonSelect
                               className='ion-margin'
-                              label="Type Of School Attended"
+                              label="Type of School Attended"
                               fill="outline"
                               labelPlacement="floating"
                               style={{"--color": "#000" }}
@@ -1294,7 +1280,423 @@ const Income = [
                 </IonRow>
             </IonItemGroup>
 
-            {/* HEALTH STATUS */}
+             {/* Multiple Partners */}
+            <IonItemGroup>
+              <IonGrid>
+                  <IonRow>
+                    <IonLabel style={{ fontWeight: 'bold', color: '#000', }}>
+                    Prevalence of Multiple Partners
+                    </IonLabel>
+                    <IonCol>
+                      <IonItem lines="none" style={{"--background": "#fff","--color": "#000","--background-hover": "transparent",}}>
+                        
+                        <IonRadioGroup
+                          value={isMultiplePartners}
+                          onIonChange={(e) => {
+                            setIsMultiplePartners(e.detail.value);
+                            if (e.detail.value === "No") {
+                              handleChange("multiple_partners", "");
+                            }
+                          }}
+                          style={{
+                            display: "flex",
+                            gap: "1rem",
+                            marginTop: "0.5rem",
+                          }}
+                        >
+                          <IonRow>
+                          <IonItem lines="none" style={{ "--background": "#fff" }}>
+                              <IonRadio value="Yes">Yes</IonRadio>
+                          </IonItem>
+                          <IonItem lines="none" style={{ "--background": "#fff" }}>
+                              <IonRadio value="No">No</IonRadio>
+                          </IonItem>
+                          </IonRow>
+                        </IonRadioGroup>
+                      </IonItem>
+                   </IonCol>
+
+                    <IonCol size='12' size-md='6'>
+                        <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
+                          <IonInput
+                            className='ion-margin'
+                            label="Partners Have Been with Since First Pregnancy"
+                            type="text"
+                            labelPlacement="floating"
+                            fill="outline"
+                            style={{ "--color": "#000" }}
+                            value={partnersData.multiple_partner_num}
+                            onIonChange={(e) =>
+                              handleChange("multiple_partner_num", e.detail.value!)
+                            }
+                            disabled={isMultiplePartners !== 'Yes'}
+                          />
+                        </IonItem>
+                    </IonCol>
+                  </IonRow>
+              </IonGrid>
+             </IonItemGroup>
+            <br />
+            <br />
+             {/*TeenageFather INFORMATION */}
+            <IonItemGroup>
+              <IonItemDivider
+                style={{
+                  "--color": "#002d54",
+                  fontWeight: "bold",
+                  "--background": "#fff",
+                  fontSize: "20px",
+
+                }}
+              >
+                Teenage Father Information
+              </IonItemDivider>
+
+              <IonGrid>
+                <IonRow>
+                  {/* Partner's First Name */}
+                  <IonCol size='12' size-md='6'>
+                    <IonItem lines="none" style={{ "--background": "#fff", }}>
+                      <IonInput
+                        className='ion-margin'
+                        type="text" 
+                        label="First Name"
+                        labelPlacement="floating"
+                        fill='outline'
+                        style={{ "--color": "#000" }}
+                        value={partnersData.pFirstname}
+                        onIonChange={(e) => handleChange("pFirstname", e.detail.value!)}
+                      />
+                    </IonItem>
+                  </IonCol>
+                  {/* Partner's Last Name */}
+                  <IonCol size='12' size-md='6'>
+                    <IonItem lines="none" style={{ "--background": "#fff", }}>
+                      <IonInput
+                        className='ion-margin'
+                        type="text" 
+                        label="Partner's Last Name"
+                        labelPlacement="floating"
+                        fill='outline'
+                        style={{ "--color": "#000" }}
+                        value={partnersData.pLastname}
+                        onIonChange={(e) => handleChange("pLastname", e.detail.value!)}
+                      />
+                    </IonItem>
+                  </IonCol>
+                </IonRow>
+              </IonGrid>
+
+              <IonGrid>
+                <IonRow>
+                  {/* Partner's Age */}
+                  <IonCol size='12' size-md='6'>
+                    <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                      <IonInput
+                        className='ion-margin'
+                        type="number" 
+                        label="Partner's Age"
+                        fill='outline'
+                        labelPlacement="floating"
+                        style={{ "--color": "#000" }}
+                        value={partnersData.pAge}
+                        onIonChange={(e) => handleChange("pAge", e.detail.value!)}
+                      />
+                    </IonItem>
+                  </IonCol>
+                  {/* Date of Birth */}
+                  <IonCol size='12' size-md='6'>
+                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                      <IonInput
+                          className='ion-margin'
+                          label="Date of Birth"
+                          type="date"
+                          labelPlacement="floating"
+                          fill="outline"
+                          style={{ "--color": "#000" }}
+                          value={partnersData.pBirthdate}
+                          onIonChange={(e) =>
+                              handleChange("pBirthdate", e.detail.value!)
+                          }
+                      />
+                    </IonItem>
+                  </IonCol>
+                </IonRow>
+              </IonGrid>
+
+              <IonGrid>
+                <IonRow>
+                  {/* Partner Contact Number */}
+                  <IonCol size='12' size-md='6'>
+                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                      <IonInput
+                        className='ion-margin'
+                        type="text" 
+                        label=" Contact Number"
+                        labelPlacement="floating"
+                        fill='outline'
+                        style={{ "--color": "#000" }}
+                        value={partnersData.contact_num}
+                        onIonChange={(e) => handleChange("contact_num", e.detail.value!)}
+                      />
+                    </IonItem>
+                  </IonCol>
+
+                  {/* Partner Marital Status */}
+                  <IonCol size='12' size-md='6'>
+                    <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
+                      <IonSelect
+                        className='ion-margin'
+                        label="Partner's Marital Status"
+                        fill="outline"
+                        labelPlacement="floating"
+                        style={{ "--color": "#000" }}
+                        value={partnersData.marital_status}
+                        onIonChange={(e) => handleChange("pMarital_status", e.detail.value!)}
+                      >
+                        <IonSelectOption value="married">Married</IonSelectOption>
+                        <IonSelectOption value="single">Single</IonSelectOption>
+                        <IonSelectOption value="live-in">Common-law/Live-in</IonSelectOption>
+                        <IonSelectOption value="separated">Separated</IonSelectOption>
+                        <IonSelectOption value="widowed">Widowed</IonSelectOption>
+                        <IonSelectOption value="divorced">Divorced</IonSelectOption>
+                        <IonSelectOption value="annulled">Annulled</IonSelectOption>
+                      </IonSelect>
+                    </IonItem>
+                  </IonCol>
+                </IonRow>
+              </IonGrid>
+
+              <IonGrid>
+                <IonRow>
+                  {/* Partner Religion */}
+                  <IonCol size='12' size-md='6'>
+                    <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
+                      <IonSelect
+                        className='ion-margin'
+                        label="Religion"
+                        fill="outline"
+                        labelPlacement="floating"
+                        style={{ "--color": "#000" }}
+                        value={partnersData.religion}
+                        onIonChange={(e) => handleChange("pReligion", e.detail.value!)}
+                      >
+                        <IonSelectOption value="Catholic">Roman Catholic</IonSelectOption>
+                        <IonSelectOption value="Evangelicals">Evangelicals</IonSelectOption>
+                        <IonSelectOption value="Islam">Islam</IonSelectOption>
+                        <IonSelectOption value="Iglesia Ni Cristo">Iglesia ni Cristo</IonSelectOption>
+                        <IonSelectOption value="Others">Others Religious Affiliations</IonSelectOption>
+                      </IonSelect>
+                    </IonItem>
+                  </IonCol>
+
+                  {/* Partner Living With */}
+                  <IonCol size='12' size-md='6'>
+                    <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
+                      <IonSelect
+                        className='ion-margin'
+                        label="Living With"
+                        fill="outline"
+                        labelPlacement="floating"
+                        style={{ "--color": "#000" }}
+                        value={partnersData.living_with}
+                        onIonChange={(e) => handleChange("pLiving_with", e.detail.value!)}
+                      >
+                        <IonSelectOption value="Living with Both Parents">Both Parents</IonSelectOption>
+                        <IonSelectOption value="Living with Mother">Mother</IonSelectOption>
+                        <IonSelectOption value="Living with Father">Father</IonSelectOption>
+                        <IonSelectOption value="Living with Relatives">Relatives</IonSelectOption>
+                        <IonSelectOption value="Living with Partners">Partner</IonSelectOption>
+                        <IonSelectOption value="Not living with Parents">Not living with Parents</IonSelectOption>
+                        <IonSelectOption value="Alone">Alone</IonSelectOption>
+                      </IonSelect>
+                    </IonItem>
+                  </IonCol>
+                </IonRow>
+              </IonGrid>
+
+              <IonGrid>
+                <IonRow>
+                {/*Partner Occupation */}
+                <IonCol size='12' size-md='6'>
+                  <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                    <IonSelect
+                            className='ion-margin'
+                            label="Occupation"
+                            fill="outline"
+                            labelPlacement="floating"
+                            style={{ "--color": "#000" }}
+                            value={partnersData.pOccupation}
+                            onIonChange={(e) => handleChange("pOccupation", e.detail.value!)}
+                        >
+                          {Occupations.map((occupation, index) => (
+                            <IonSelectOption key={index} value={occupation}>{occupation}</IonSelectOption>
+                          ))}
+                        </IonSelect>
+                  </IonItem>
+                </IonCol>
+                {/*Partner Income*/}
+                <IonCol size='12' size-md='6'>
+                  <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                    <IonSelect
+                            className='ion-margin'
+                            label="Partner's Income"
+                            fill="outline"
+                            labelPlacement="floating"
+                            style={{ "--color": "#000" }}
+                            value={partnersData.pIncome}
+                            onIonChange={(e) => handleChange("pIncome", e.detail.value!)}
+                        >
+                          {Income.map((incomeRange, index) => (
+                            <IonSelectOption key={index} value={incomeRange}>{incomeRange}</IonSelectOption>
+                          ))}
+                        </IonSelect>
+                  </IonItem>
+                </IonCol>             
+                </IonRow>
+              </IonGrid>
+
+              <IonGrid>
+                <IonRow>
+                    {/*partners Indigenous Ethnicity */}
+                  <IonLabel style={{ fontWeight: 'bold', color: '#000', }}>
+                  Member of Indigenous Cultural Community?
+                  </IonLabel>
+                    <IonCol >
+                      <IonItem lines="none" style={{"--background": "#fff","--color": "#000","--background-hover": "transparent",}}>
+
+                        <IonRadioGroup
+                          value={isPartnerIndigenous}
+                          onIonChange={(e) => {
+                            setIsPartnerIndigenous(e.detail.value);
+                            if (e.detail.value === "No") {
+                              handleChange("pIndigenous_ethnicity", '');
+                            }
+                          }}
+                          style={{
+                            display: "flex",
+                            gap: "1rem",
+                            marginTop: "0.5rem",
+                          }}
+                        >
+                          <IonRow>
+                            <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                <IonRadio value="Yes">Yes</IonRadio>
+                            </IonItem>
+                            <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                <IonRadio value="No">No</IonRadio>
+                            </IonItem>
+                          </IonRow>
+                        </IonRadioGroup>
+                      </IonItem>
+                    </IonCol>
+                    
+                    <IonCol size='12' size-md='6'>
+                      <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
+                        <IonInput
+                          className='ion-margin'
+                          label="Specify Indigenous Cultural Community"
+                          type="text"
+                          labelPlacement="floating"
+                          fill="outline"
+                          style={{ "--color": "#000" }}
+                          value={partnersData.indigenous_ethnicity}
+                          onIonChange={(e) =>
+                            handleChange("pIndigenous_ethnicity", e.detail.value!)
+                          }
+                          disabled={isPartnerIndigenous !== 'Yes'}
+                        />
+                      </IonItem>
+                    </IonCol>
+                </IonRow>
+              </IonGrid> 
+
+                {/* Fathers Occupation and Income */}
+                <IonGrid>
+                  <IonRow>
+                    {/*Fathers Occupation*/}
+                    <IonCol size='12' size-md='6'>
+                      <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                        <IonSelect
+                                className='ion-margin'
+                                label="Father's Occupation"
+                                fill="outline"
+                                labelPlacement="floating"
+                                style={{ "--color": "#000" }}
+                                value={partnersData.fathers_occupation}
+                                onIonChange={(e) => handleChange("pFathers_occupation", e.detail.value!)}
+                            >
+                              {Occupations.map((occupation, index) => (
+                                <IonSelectOption key={index} value={occupation}>{occupation}</IonSelectOption>
+                              ))}
+                            </IonSelect>
+                      </IonItem>
+                    </IonCol>
+
+                    <IonCol size='12' size-md='6'>
+                      <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                         <IonSelect
+                                className='ion-margin'
+                                label="Father's Income"
+                                fill="outline"
+                                labelPlacement="floating"
+                                style={{ "--color": "#000" }}
+                                value={partnersData.fathers_income}
+                                onIonChange={(e) => handleChange("pFathers_income", e.detail.value!)}
+                            >
+                              {Income.map((incomeRange, index) => (
+                                <IonSelectOption key={index} value={incomeRange}>{incomeRange}</IonSelectOption>
+                              ))}
+                            </IonSelect>
+                      </IonItem>
+                    </IonCol>
+                  </IonRow>
+              </IonGrid>    
+
+              {/* Mother's Occupation and Income */}
+              <IonGrid>
+                <IonRow>
+                  {/*Mothers Occupation*/}
+                    <IonCol size='12' size-md='6'>
+                      <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                        <IonSelect
+                                className='ion-margin'
+                                label="Mother's Occupation"
+                                fill="outline"
+                                labelPlacement="floating"
+                                style={{ "--color": "#000" }}
+                                value={partnersData.mothers_occupation}
+                                onIonChange={(e) => handleChange("pMothers_occupation", e.detail.value!)}
+                            >
+                              {Occupations.map((occupation, index) => (
+                                <IonSelectOption key={index} value={occupation}>{occupation}</IonSelectOption>
+                              ))}
+                            </IonSelect>
+                      </IonItem>
+                    </IonCol>
+                    {/*Mothers Income*/}
+                    <IonCol size='12' size-md='6'>
+                      <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
+                        <IonSelect
+                                className='ion-margin'
+                                label="Mother's Income"  
+                                fill="outline"
+                                labelPlacement="floating"
+                                style={{ "--color": "#000" }}
+                                value={partnersData.mothers_income}
+                                onIonChange={(e) => handleChange("pMothers_income", e.detail.value!)}
+                            >
+                              {Income.map((incomeRange, index) => (
+                                <IonSelectOption key={index} value={incomeRange}>{incomeRange}</IonSelectOption>
+                              ))}
+                            </IonSelect>
+                      </IonItem>
+                    </IonCol>
+                  </IonRow>
+                </IonGrid>
+            </IonItemGroup>
+
+             {/* TeenageFather ADDRESS */}
             <IonItemGroup>
               <IonItemDivider
                 style={{
@@ -1303,105 +1705,219 @@ const Income = [
                   "--background": "#fff",
                 }}
               >
-                Health Status
+                Address
               </IonItemDivider>
-              
+
               <IonGrid>
                 <IonRow>
-                  <IonCol size="12" size-md='6'>
-                    <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
-                      <IonSelect
+                  {/* Partner REGION */}
+                  <IonCol size='12' size-md='6'>
+                    <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent',}}>
+                      <IonSelect 
                           className='ion-margin'
-                          label="Pregnancy Status"
-                          fill="outline"
-                          labelPlacement="floating"
-                          style={{"--color": "#000" }}
-                          value={healthData.pregnancy_status}
-                          onIonChange={(e) => handleChange("pregnancy_status", e.detail.value!)}
-                      >
-                        <IonSelectOption value="Pregnant">Pregnant</IonSelectOption>
-                        <IonSelectOption value="Not Pregnant">Not Pregnant</IonSelectOption>
+                          label="Region" 
+                          fill="outline" 
+                          labelPlacement="floating" 
+                          style={{ "--color": "#000", "--background-activated": "transparent" }}
+                          value={regionlist.find((r: any) => r.name === partnersData.region)?.reg_code || ''}
+                          onIonChange={(e) => handlePartnerRegionChange(e.detail.value)}>
+                          {regionlist.map((r, index) => (
+                            <IonSelectOption key={`partner-reg-${r.reg_code}-${index}`} value={r.reg_code}>{r.name}</IonSelectOption>
+                          ))}
                       </IonSelect>
                     </IonItem>
                   </IonCol>
-
-                  <IonCol size="12" size-md='6'>
+                  
+                  {/* Partner PROVINCE */}
+                  <IonCol size='12' size-md='6'>
                     <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
-                      <IonSelect
-                          className='ion-margin'
-                          label="Stage of Pregnancy"
-                          fill="outline"
-                          labelPlacement="floating"
-                          style={{"--color": "#000" }}
-                          value={healthData.stage_of_pregnancy}
-                          onIonChange={(e) => handleChange("stage_of_pregnancy", e.detail.value!)}
-                      >
-                          <IonSelectOption value="First Trimester (1-12 weeks)">First Trimester (1-12 weeks)</IonSelectOption>
-                          <IonSelectOption value="Second Trimester (13-26 weeks)">Second Trimester (13-26 weeks)</IonSelectOption>
-                          <IonSelectOption value="Third Trimester (27-40 weeks)">Third Trimester (27-40 weeks)</IonSelectOption>
-                          <IonSelectOption value="N/A">N/A</IonSelectOption>
+                      <IonSelect 
+                          className='ion-margin' 
+                          label="Province" 
+                          fill="outline" 
+                          labelPlacement="floating" 
+                          style={{ "--color": "#000" }} 
+                          value={partnersProvincelist.find((p: any) => p.name === partnersData.province)?.prov_code || ''} 
+                          onIonChange={(e) => handlePartnerProvinceChange(e.detail.value)} 
+                          disabled={partnersProvincelist.length === 0}>
+                          {partnersProvincelist.map((p, index) => (
+                            <IonSelectOption key={`partner-prov-${p.prov_code}-${index}`} value={p.prov_code}>{p.name}</IonSelectOption>
+                          ))}
                       </IonSelect>
                     </IonItem>
                   </IonCol>
                 </IonRow>
               </IonGrid>
 
-              <IonItem lines="none" style={{ "--background": "#fff",fontWeight: "bold", fontSize: "0.9rem" }}>
-                <IonLabel style={{ color: "#000" }}>Medical History</IonLabel>
-              </IonItem>
+              <IonGrid>
+                <IonRow>
+                  {/* Partner MUNICIPALITY */}
+                  <IonCol size='12' size-md='6'>
+                    <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
+                      <IonSelect 
+                          className='ion-margin' 
+                          label="Municipality" 
+                          fill="outline" 
+                          labelPlacement="floating" 
+                          style={{ "--color": "#000" }} 
+                          value={partnersMunicipalitylist.find((m: any) => m.name === partnersData.municipality)?.mun_code || ''}
+                          onIonChange={(e) => handlePartnerMunicipalityChange(e.detail.value)} 
+                          disabled={partnersMunicipalitylist.length === 0}>
+                          {partnersMunicipalitylist.map((m, index) => (
+                            <IonSelectOption key={`partner-mun-${m.mun_code}-${index}`} value={m.mun_code}>{m.name}</IonSelectOption>
+                          ))}
+                      </IonSelect>
+                    </IonItem>
+                  </IonCol>
+
+                  {/* Partner BARANGAY */}
+                  <IonCol size='12' size-md='6'>
+                    <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent',}}>
+                      <IonSelect 
+                          className='ion-margin' 
+                          label="Barangay" 
+                          fill="outline" 
+                          labelPlacement="floating" 
+                          style={{ "--color": "#000" }}
+                          value={partnersData.barangay || ''}
+                          onIonChange={(e) => handleChange("pBarangay", e.detail.value)} 
+                          disabled={partnersBarangaylist.length === 0}>
+                          {partnersBarangaylist.map((b, index) => (
+                            <IonSelectOption key={`partner-${b.mun_code}-${b.name}-${index}`} value={b.name}>{b.name}</IonSelectOption>
+                          ))}
+                      </IonSelect>
+                    </IonItem>
+                  </IonCol>
+                </IonRow>
+              </IonGrid>
 
               <IonGrid>
                 <IonRow>
-                  {[
-                    "Tuberculosis (14 days or more of cough)",
-                    "Heart Diseases",
-                    "Diabetes",
-                    "Hypertension",
-                    "Bronchial Asthma",
-                    "Urinary Tract Infection",
-                    "Parasitism",
-                    "Goiter",
-                    "Anemia",
-                    "Malnutrition",
-                    "Genital Tract Infection"
-                  ].map((cond) => (
-                    <IonCol size="12" size-md='6' key={cond}>
-                      <IonItem lines="none" style={{ "--background": "#fff", '--background-hover':'transparent', }}>
-                        <IonCheckbox 
-                          labelPlacement="end" 
-                          style={{ '--checkbox-background': '#ffffffff',
-                                    '--checkbox-background-checked': '#ffffffff',
-                                    '--border-color': '#000000ff',
-                                    '--checkbox-icon-color': '#ffffff',
-                                    '--checkmark-color':'#000000'
-                                  }}
-                          checked={healthData.medical_history?.includes(cond)}
-                          onIonChange={(e) => handleChange(`medical_${cond}`, e.detail.checked)}
-                        >
-                          <IonLabel style={{ color: "#000" }}>{cond}</IonLabel>
-                        </IonCheckbox>
-                      </IonItem>
-                    </IonCol>
-                  ))}
+                  {/* Partner Zip Code */}
+                  <IonCol size='12' size-md='6'>
+                    <IonItem lines="none" style={{ "--background": "#fff" }}>
+                      <IonInput
+                          className='ion-margin'
+                          label="Zip Code"
+                          labelPlacement="floating"
+                          fill="outline"
+                          style={{ "--color": "#000" }}
+                          value={partnersData.zipcode}
+                          onIonChange={(e) =>
+                              handleChange("pZipcode", e.detail.value!)
+                          }
+                      />
+                    </IonItem>
+                  </IonCol>
                 </IonRow>
               </IonGrid>
-               {/* Others input field */}
-              <IonRow>
-                <IonCol>
-                  <IonItem lines="none" style={{ "--background": "#fff" }}>
-                    <IonLabel position ="stacked" style={{ color: "#000", fontSize: "1.1rem", marginLeft: "5px" }}>Others Please specify</IonLabel>
-                    <IonInput
-                      className='ion-margin'
-                      style={{ "--color": "#000" }}
-                      value={healthData.medical_history_others}
-                      onIonChange={(e) => handleChange("medical_history_others", e.detail.value!)}
-                      placeholder="Specify other medical conditions"
-                    />
-                  </IonItem>
-                </IonCol>
-              </IonRow>
             </IonItemGroup>
 
+              {/*TEENAGE FATHER Educational Background */}
+            <IonItemGroup>
+                <IonItemDivider
+                    style={{
+                    "--color": "#000",
+                    fontWeight: "bold",
+                    "--background": "#fff",
+                    }}
+                >
+                    Educational Background
+                </IonItemDivider>
+
+                <IonRow>
+                    {/* Type Of School Attended */}
+                    <IonCol size='12' size-md='6'>
+                      <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
+                        <IonSelect
+                          className='ion-margin'
+                          label="Type of School Attended"
+                          fill="outline"
+                          labelPlacement="floating"
+                          style={{"--color": "#000" }}
+                          value={partnersData.type_of_school}
+                          onIonChange={(e) => handleChange("pType_of_school", e.detail.value!)}
+                        >
+                          <IonSelectOption value="Private">Private</IonSelectOption>
+                          <IonSelectOption value="Public">Public</IonSelectOption>
+                        </IonSelect>
+                      </IonItem>
+                    </IonCol>
+
+                    {/* Current Year Level Of Education */}
+                    <IonCol size='12' size-md='6'>
+                        <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
+                        <IonSelect
+                              className='ion-margin'
+                              label="Current Year Level Of Education"
+                              fill="outline"
+                              labelPlacement="floating"
+                              style={{"--color": "#000" }}
+                              value={partnersData.current_year_level}
+                             onIonChange={(e) => handleChange("pCurrent_year_level", e.detail.value!)}
+                          >
+                            <IonSelectOption value="Grade 1">Grade 1</IonSelectOption>
+                            <IonSelectOption value="Grade 2">Grade 2</IonSelectOption>
+                            <IonSelectOption value="Grade 3">Grade 3</IonSelectOption>
+                            <IonSelectOption value="Grade 4">Grade 4</IonSelectOption>
+                            <IonSelectOption value="Grade 5">Grade 5</IonSelectOption>
+                            <IonSelectOption value="Grade 6">Grade 6</IonSelectOption>
+                            <IonSelectOption value="Grade 7">Grade 7</IonSelectOption>
+                            <IonSelectOption value="Grade 8">Grade 8</IonSelectOption>
+                            <IonSelectOption value="Grade 9">Grade 9</IonSelectOption>
+                            <IonSelectOption value="Grade 10">Grade 10</IonSelectOption>
+                            <IonSelectOption value="Grade 11">Grade 11</IonSelectOption>
+                            <IonSelectOption value="Grade 12">Grade 12</IonSelectOption>
+                            <IonSelectOption value="1st Year College">1st Year College</IonSelectOption>
+                            <IonSelectOption value="2nd Year College">2nd Year College</IonSelectOption>
+                            <IonSelectOption value="3rd Year College">3rd Year College</IonSelectOption>
+                            <IonSelectOption value="4th Year College">4th Year College</IonSelectOption>
+                            <IonSelectOption value="Vocational Training">Vocational Training</IonSelectOption>
+                            <IonSelectOption value="ALS Elementary">ALS Elementary</IonSelectOption>
+                            <IonSelectOption value="ALS Secondary">ALS Secondary</IonSelectOption>
+                            <IonSelectOption value="Not Attending School">Not Attending School</IonSelectOption>
+                          </IonSelect>
+                        </IonItem>
+                    </IonCol>
+                </IonRow>
+
+                {/* Highest Educational Attainment */}
+                <IonRow>
+                  <IonCol>
+                     <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
+                        <IonSelect
+                              className='ion-margin'
+                              label="Highest Educational Attainment"
+                              fill="outline"
+                              labelPlacement="floating"
+                              style={{"--color": "#000" }}
+                              value={partnersData.highest_educational_attainment}
+                              onIonChange={(e) => handleChange("pHighest_educational_attainment", e.detail.value!)}
+                          >
+                            <IonSelectOption value="Grade 1">Grade 1</IonSelectOption>
+                            <IonSelectOption value="Grade 2">Grade 2</IonSelectOption>
+                            <IonSelectOption value="Grade 3">Grade 3</IonSelectOption>
+                            <IonSelectOption value="Grade 4">Grade 4</IonSelectOption>
+                            <IonSelectOption value="Grade 5">Grade 5</IonSelectOption>
+                            <IonSelectOption value="Grade 6">Grade 6</IonSelectOption>
+                            <IonSelectOption value="Grade 7">Grade 7</IonSelectOption>
+                            <IonSelectOption value="Grade 8">Grade 8</IonSelectOption>
+                            <IonSelectOption value="Grade 9">Grade 9</IonSelectOption>
+                            <IonSelectOption value="Grade 10">Grade 10</IonSelectOption>
+                            <IonSelectOption value="Grade 11">Grade 11</IonSelectOption>
+                            <IonSelectOption value="Grade 12">Grade 12</IonSelectOption>
+                            <IonSelectOption value="1st Year College">1st Year College</IonSelectOption>
+                            <IonSelectOption value="2nd Year College">2nd Year College</IonSelectOption>
+                            <IonSelectOption value="3rd Year College">3rd Year College</IonSelectOption>
+                            <IonSelectOption value="4th Year College">4th Year College</IonSelectOption>
+                            <IonSelectOption value="Vocational Training">Vocational Training</IonSelectOption>
+                            <IonSelectOption value="ALS Elementary">ALS Elementary</IonSelectOption>
+                            <IonSelectOption value="ALS Secondary">ALS Secondary</IonSelectOption>
+                          </IonSelect>
+                     </IonItem>
+                  </IonCol>
+                </IonRow>
+            </IonItemGroup>
 
             <IonRow className="ion-justify-content-center ion-margin-top">
               <IonCol size="auto">

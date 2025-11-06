@@ -80,17 +80,18 @@ const Register: React.FC = () => {
             const hashedPassword = await bcrypt.hash(password, salt);
 
             // Store user data in users table with auth_id and encrypted password
-            const { error: insertError } = await supabase.from("users").insert([
-                {
-                    auth_id: authData.user.id,
-                    username: username,
-                    email: email,
-                    userfirstName: FirstName,
-                    userlastName: LastName,
-                    password: hashedPassword,
-                    role: 'user' 
-                }
-            ]);
+            const { error: insertError } = await supabase.from("users")
+                .insert([
+                    {
+                        auth_id: authData.user.id,
+                        username: username,
+                        email: email,
+                        userfirstName: FirstName,
+                        userlastName: LastName,
+                        password: hashedPassword,
+                        role: 'teenager'
+                    }
+                ]);
 
             if (insertError) {
                 throw new Error("Failed to save user data: " + insertError.message);

@@ -104,7 +104,7 @@ const Login: React.FC = () => {
                     }
 
                     const userRole = userData.role;
-                    console.log('User role:', userRole);
+                    //console.log('User role:', userRole);
 
                     const adminRoles = ['admin', 'healthworker', 'socialworker', 'school'];
 
