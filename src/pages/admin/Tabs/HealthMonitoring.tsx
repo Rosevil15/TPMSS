@@ -14,8 +14,8 @@ interface HealthMonitoring {
     pregnancy_status: string;
     stage_of_pregnancy: string;
     num_of_pregnancies: number;
-    tentanus_vacc: boolean;
-    tetanus_dose: number;
+    vaccinations: any;
+    bloodPressure: string;
     date_of_last_mens_period: string;
     height: number;
     weight: number;
@@ -62,8 +62,8 @@ const HealthMonitoring: React.FC<HealthMonitoringProps> = ({ searchQuery = '' })
                 pregnancy_status,
                 stage_of_pregnancy,
                 num_of_pregnancies,
-                tentanus_vacc,
-                tetanus_dose,
+                vaccinations,
+                bloodPressure,
                 date_of_last_mens_period,
                 height,
                 weight,

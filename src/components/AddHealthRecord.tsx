@@ -15,6 +15,11 @@ interface ProfileOption {
     firstName: string | null;
     lastName: string | null;
 }
+interface Vaccination {
+    id: string;
+    vaccine_name: string;
+    doses: number;
+}
 
 interface formState {
     profileid: number | null;
@@ -24,12 +29,12 @@ interface formState {
     medical_history: string[];
     medical_history_others: string;
     num_of_pregnancies: number;
-    tentanus_vacc: boolean;
-    tetanus_dose: number;
+    vaccinations: Vaccination[];
     date_of_last_mens_period: string;
     height: number;
     weight: number;
     temperature: number;
+    bloodPressure: string;
 }
 
 const emptyForm: formState = {
@@ -40,12 +45,12 @@ const emptyForm: formState = {
     medical_history: [],
     medical_history_others: '',
     num_of_pregnancies: 0,
-    tentanus_vacc: false,
-    tetanus_dose: 0,
+    vaccinations: [],
     date_of_last_mens_period: '',
     height: 0,
     weight: 0,
     temperature: 0,
+    bloodPressure: '',
 };
 
 const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSave, isEditing = false, editingHealth = null }) => {
@@ -124,7 +129,6 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                 knownConditions.includes(item)
             );
 
-            // Check if there's an "Other" entry in medical history
             const otherMedicalHistory = medicalHistoryArray.filter((item: string) => 
                 !knownConditions.includes(item)
             ).join(', ');
@@ -140,14 +144,26 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                 medical_history: knownMedicalHistory,
                 medical_history_others: otherMedicalHistory,
                 num_of_pregnancies: editingHealth.num_of_pregnancies || 0,
-                tentanus_vacc: editingHealth.tentanus_vacc || false,
-                tetanus_dose: editingHealth.tetanus_dose || 0,
                 date_of_last_mens_period: editingHealth.date_of_last_mens_period || '',
                 height: editingHealth.height || 0,
                 weight: editingHealth.weight || 0,
                 temperature: editingHealth.temperature || 0,
+                bloodPressure: editingHealth.bloodPressure || '',
+                vaccinations: (() => {
+                    try {
+                        if (editingHealth.vaccinations) {
+                            const parsed = JSON.parse(editingHealth.vaccinations);
+                            
+                            return Array.isArray(parsed) ? parsed : [];
+                        }
+                        return [];
+                    } catch (error) {
+                        console.error('Error parsing vaccinations JSON:', error);
+                        return [];
+                    }
+                })(),
             });
-            
+
         } catch (err) {
             console.error('Error loading editing data:', err);
             setError('Failed to load health record data');
@@ -223,6 +239,37 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
         }));
     };
 
+    const addVaccination = () => {
+        const newVaccination: Vaccination = {
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            vaccine_name: '',
+            doses: 0,
+        };
+
+        setForm((prevForm) => ({
+            ...prevForm,
+            vaccinations: [...prevForm.vaccinations, newVaccination],
+        }));  
+    };
+
+    const removeVaccination = (id : string) => {
+        setForm((prevForm) => ({
+            ...prevForm,
+            vaccinations: prevForm.vaccinations.filter((vaccination) => vaccination.id !== id),
+        }));
+    };
+
+    const updateVaccination = (id: string, field: keyof Omit< Vaccination, 'id'>, value: string | number) => {
+        setForm((prevForm) => ({
+            ...prevForm,
+            vaccinations: prevForm.vaccinations.map(vaccination => 
+                vaccination.id === id
+                    ? { ...vaccination, [field]: value }
+                    : vaccination
+            ),
+        }));
+            
+    };
     const handleCheckboxChange = (value: string, checked: boolean, field: 'medical_history') => {
          console.log(`=== CHECKBOX CHANGE ===`);
         console.log(`Field: ${field}, Value: ${value}, Checked: ${checked}`);
@@ -273,12 +320,12 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                 stage_of_pregnancy: form.stage_of_pregnancy || null,
                 medical_history: medicalHistoryString || null,
                 num_of_pregnancies: form.num_of_pregnancies || 0,
-                tentanus_vacc: form.tentanus_vacc,
-                tetanus_dose: form.tetanus_dose || 0,
+                vaccinations: JSON.stringify(form.vaccinations),
                 date_of_last_mens_period: form.date_of_last_mens_period || null,
                 height: form.height || 0,
                 weight: form.weight || 0,
                 temperature: form.temperature || 0,
+                bloodPressure: form.bloodPressure,
             };
 
             const { data, error } = await supabase
@@ -336,12 +383,12 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                 stage_of_pregnancy: form.stage_of_pregnancy || null,
                 medical_history: medicalHistoryString || null,
                 num_of_pregnancies: form.num_of_pregnancies || 0,
-                tentanus_vacc: form.tentanus_vacc,
-                tetanus_dose: form.tetanus_dose || 0,
+                vaccinations: JSON.stringify(form.vaccinations),
                 date_of_last_mens_period: form.date_of_last_mens_period || null,
                 height: form.height || 0,
                 weight: form.weight || 0,
                 temperature: form.temperature || 0,
+                bloodPressure: form.bloodPressure || null,
             };
 
             const { data, error } = await supabase
@@ -350,7 +397,7 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                 .select(); 
 
             if (error) {
-                console.error('=== INSERT ERROR ===');
+                console.error(' INSERT ERROR');
                 console.error('Supabase insert error:', error);
                 throw error;
             }
@@ -650,44 +697,89 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                                     Vaccination/Immunization
                                 </IonItemDivider>
 
+                                {/* Add Vaccination Button */}
                                 <IonRow>
                                     <IonCol>
-                                        <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000" }}>
-                                            <IonCheckbox
-                                                checked={form.tentanus_vacc}
-                                                onIonChange={(e) => {
-                                                    handleChange('tentanus_vacc', e.detail.checked);
-                                                    // Reset tetanus_dose to 0 when unchecked
-                                                    if (!e.detail.checked) {
-                                                        handleChange('tetanus_dose', 0);
-                                                    }
-                                                }}
-                                                disabled={save}
-                                                labelPlacement="end"
-                                            >
-                                                Tetanus Vaccination Received
-                                            </IonCheckbox>
-                                        </IonItem>
+                                        <IonButton 
+                                            fill="outline" 
+                                            onClick={addVaccination}
+                                            disabled={save}
+                                            style={{ margin: '10px' }}
+                                        >
+                                            + Add Vaccination
+                                        </IonButton>
                                     </IonCol>
                                 </IonRow>
 
-                                <IonRow>
-                                    <IonCol>
-                                        <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                            <IonInput
-                                                className='ion-margin'
-                                                label="Tetanus Dose"
-                                                labelPlacement="floating"
-                                                fill="outline"
-                                                type="number"
-                                                value={form.tetanus_dose}
-                                                onIonInput={(e) => handleChange('tetanus_dose', parseInt(e.detail.value ?? '0'))}
-                                                style={{ "--color": "#000" }}
-                                                disabled={save || !form.tentanus_vacc}
-                                            />
-                                        </IonItem>
-                                    </IonCol>
-                                </IonRow>
+                                {/* Vaccination Records */}
+                                {form.vaccinations.map((vaccination, index) => (
+                                    <div key={vaccination.id} style={{ 
+                                        border: '1px solid #ddd', 
+                                        borderRadius: '8px', 
+                                        margin: '10px', 
+                                        padding: '15px',
+                                        backgroundColor: '#f9f9f9'
+                                    }}>
+                                        <IonGrid>
+                                            <IonRow style={{ alignItems: 'center' }}>
+                                                <IonCol size="12" size-md="5">
+                                                    <IonItem lines="none" style={{ "--background": "transparent" }}>
+                                                        <IonInput
+                                                            className='ion-margin'
+                                                            label={`Vaccination ${index + 1} - Name`}
+                                                            labelPlacement="floating"
+                                                            fill="outline"
+                                                            placeholder="e.g., Tetanus, Hepatitis B, etc."
+                                                            value={vaccination.vaccine_name}
+                                                            onIonInput={(e) => updateVaccination(vaccination.id, 'vaccine_name', e.detail.value ?? '')}
+                                                            style={{ "--color": "#000" }}
+                                                            disabled={save}
+                                                        />
+                                                    </IonItem>
+                                                </IonCol>
+
+                                                <IonCol size="12" size-md="4">
+                                                    <IonItem lines="none" style={{ "--background": "transparent" }}>
+                                                        <IonInput
+                                                            className='ion-margin'
+                                                            label="Number of Doses"
+                                                            labelPlacement="floating"
+                                                            fill="outline"
+                                                            type="number"
+                                                            value={vaccination.doses}
+                                                            onIonInput={(e) => updateVaccination(vaccination.id, 'doses', parseInt(e.detail.value ?? '0'))}
+                                                            style={{ "--color": "#000" }}
+                                                            disabled={save || !vaccination.vaccine_name.trim()}
+                                                        />
+                                                    </IonItem>
+                                                </IonCol>
+
+                                                <IonCol size="12" size-md="3">
+                                                    <IonButton 
+                                                        color="danger" 
+                                                        fill="outline" 
+                                                        onClick={() => removeVaccination(vaccination.id)}
+                                                        disabled={save}
+                                                        style={{ width: '100%' }}
+                                                    >
+                                                        Remove
+                                                    </IonButton>
+                                                </IonCol>
+                                            </IonRow>
+                                        </IonGrid>
+                                    </div>
+                                ))}
+
+                                {/* Show message when no vaccinations */}
+                                {form.vaccinations.length === 0 && (
+                                    <IonRow>
+                                        <IonCol>
+                                            <IonText style={{ color: '#666', textAlign: 'center', padding: '20px', display: 'block' }}>
+                                                No vaccinations added. Click "Add Vaccination" to add vaccination records.
+                                            </IonText>
+                                        </IonCol>
+                                    </IonRow>
+                                )}
                             </IonItemGroup>
 
                             {/* VITAL SIGNS */}
@@ -745,6 +837,22 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                                                         type="number"
                                                         value={form.temperature}
                                                         onIonInput={(e) => handleChange('temperature', parseFloat(e.detail.value ?? '0'))}
+                                                        style={{ "--color": "#000" }}
+                                                        disabled={save}
+                                                    />
+                                                </IonItem>
+                                            </IonCol>
+
+                                            <IonCol size='12' size-md='6'>
+                                                <IonItem lines="none" style={{ "--background": "#fff" }}>
+                                                    <IonInput
+                                                        className='ion-margin'
+                                                        label="Blood Pressure (mmHg)"
+                                                        labelPlacement="floating"
+                                                        fill="outline"
+                                                        type="text"
+                                                        value={form.bloodPressure}
+                                                        onIonInput={(e) => handleChange('bloodPressure', e.detail.value ?? '')}
                                                         style={{ "--color": "#000" }}
                                                         disabled={save}
                                                     />

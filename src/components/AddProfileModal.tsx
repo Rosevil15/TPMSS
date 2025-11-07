@@ -1574,6 +1574,7 @@ const handleMunicipalityChange = (municipalityCode: string) => {
 
                         <IonRadioGroup
                           value={isPartnerIndigenous}
+                          color='black'
                           onIonChange={(e) => {
                             setIsPartnerIndigenous(e.detail.value);
                             if (e.detail.value === "No") {
@@ -1584,11 +1585,12 @@ const handleMunicipalityChange = (municipalityCode: string) => {
                             display: "flex",
                             gap: "1rem",
                             marginTop: "0.5rem",
+                            
                           }}
                         >
                           <IonRow>
-                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                <IonRadio value="Yes">Yes</IonRadio>
+                            <IonItem lines="none" style={{ "--background": "#fff",  }}>
+                                <IonRadio value="Yes" color ='dark'>Yes</IonRadio>
                             </IonItem>
                             <IonItem lines="none" style={{ "--background": "#fff" }}>
                                 <IonRadio value="No">No</IonRadio>

@@ -398,20 +398,53 @@ const ViewHealthModal: React.FC<ViewHealthModalProps> = ({ isOpen, onClose, heal
                                     </IonItemDivider>
 
                                     <IonRow>
-                                        <IonCol size="12" sizeMd="6">
+                                        <IonCol size="12">
                                             <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Tetanus Vaccination:</strong>{' '}
-                                                    <IonBadge color={healthData.tentanus_vacc ? 'success' : 'medium'}>
-                                                        {healthData.tentanus_vacc ? 'Received' : 'Not Received'}
-                                                    </IonBadge>
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                        <IonCol size="12" sizeMd="6">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel>
-                                                    <strong>Tetanus Dose:</strong> {healthData.tetanus_dose || 0}
+                                                <IonLabel style={{ whiteSpace: 'normal' }}>
+                                                    {(() => {
+                                                        try {
+                                                            if (healthData.vaccinations) {
+                                                                const vaccinations = typeof healthData.vaccinations === 'string' 
+                                                                    ? JSON.parse(healthData.vaccinations) 
+                                                                    : healthData.vaccinations;
+                                                                
+                                                                if (Array.isArray(vaccinations) && vaccinations.length > 0) {
+                                                                    return (
+                                                                        <div>
+                                                                            {vaccinations.map((vaccination: any, index: number) => (
+                                                                                <div key={vaccination.id || index} style={{ 
+                                                                                    display: 'flex', 
+                                                                                    alignItems: 'center', 
+                                                                                    marginBottom: '8px',
+                                                                                    padding: '8px',
+                                                                                    backgroundColor: '#f0f8ff',
+                                                                                    borderRadius: '4px',
+                                                                                    border: '1px solid #e0e0e0'
+                                                                                }}>
+                                                                                    <IonIcon 
+                                                                                        icon={medical} 
+                                                                                        color="success" 
+                                                                                        style={{ marginRight: '8px' }}
+                                                                                    />
+                                                                                    <div>
+                                                                                        <strong>{vaccination.vaccine_name || 'Unknown Vaccine'}</strong>
+                                                                                        <br />
+                                                                                        <small style={{ color: '#666' }}>
+                                                                                            Doses: {vaccination.doses || 0}
+                                                                                        </small>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                            }
+                                                            return <em>No vaccinations recorded</em>;
+                                                        } catch (error) {
+                                                            console.error('Error parsing vaccinations:', error);
+                                                            return <em>Error loading vaccination data</em>;
+                                                        }
+                                                    })()}
                                                 </IonLabel>
                                             </IonItem>
                                         </IonCol>
