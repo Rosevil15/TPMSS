@@ -1,7 +1,8 @@
-import { IonButton, IonCard, IonCardContent, IonCol, IonContent, IonHeader, IonInput, IonItem, IonLabel, IonModal, IonPage, IonRow, IonSelect, IonSelectOption, IonText, IonTitle, IonToolbar } from '@ionic/react';
+import { IonButton, IonCard, IonCardContent, IonCol, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonPage, IonRow, IonSelect, IonSelectOption, IonText, IonTitle, IonToolbar } from '@ionic/react';
 import React, { useState } from 'react';
 import { supabase } from '../utils/supabaseClients';
 import * as bcrypt from 'bcryptjs'
+import { informationCircleOutline } from 'ionicons/icons';
 interface AddUserModalProps {
     isOpen: boolean;
     onClose:() => void;
@@ -69,6 +70,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSave }) 
                     userlastName: UserData.userlastName,
                     role: UserData.role,
                     password: hashedPassword,
+                    privacy_agreement: false,
+                    privacy_agreed_at: null,
+                    created_by_admin: true
                 }])
                 .select();
 
@@ -124,6 +128,33 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSave }) 
             </IonHeader>
 
                 <IonContent className="ion-padding" style={{ "--background": "#fff" }}>
+                        <IonCard style={{ 
+                            borderRadius: "15px", 
+                            boxShadow: "0 0 10px #ccc", 
+                            "--background": "#e3f2fd",
+                            marginBottom: "20px",
+                            border: "2px solid #2196f3"
+                        }}>
+                            <IonCardContent>
+                                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+                                    <IonIcon 
+                                        icon={informationCircleOutline} 
+                                        style={{ fontSize: '24px', color: '#1976d2', marginRight: '10px' }}
+                                    />
+                                    <IonText style={{ fontWeight: 'bold', color: '#1976d2', fontSize: '1.1rem' }}>
+                                        Privacy Agreement Notice
+                                    </IonText>
+                                </div>
+                                <IonText style={{ color: '#333', fontSize: '0.9rem', lineHeight: '1.4' }}>
+                                    <p style={{ margin: '0' }}>
+                                        <strong>Important:</strong> Users created by administrators will be required to 
+                                        agree to the Data Privacy Act (RA 10173) on their first login before they can 
+                                        access the system. This ensures compliance with privacy regulations.
+                                    </p>
+                                </IonText>
+                            </IonCardContent>
+                        </IonCard>
+
                         <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#ffffff" }}>
                             <IonCardContent>
                                 <IonItem style={{ "--background": "#fff" }}>

@@ -500,7 +500,7 @@ const AddPrenatalPostnatal: React.FC<AddPrenatalPostnatalProps> = ({ isOpen, onC
                                                     readonly
                                                 />
                                             </IonItem>
-                                            <p style={{ fontSize: '11px', color: '#666', marginLeft: '16px', marginTop: '-8px' }}>
+                                            <p style={{ fontSize: '11px', color: '#666', marginLeft: '16px', marginTop: '1px' }}>
                                                 Auto-generated based on previous visits
                                             </p>
                                         </IonCol>

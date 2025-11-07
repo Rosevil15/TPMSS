@@ -5,7 +5,7 @@ interface ProfileData {
   profileid: number;
   firstName: string;  
   lastName: string;   
-  birthdate: string;
+  birthdate: string | null;
   age: number;
   contactnum: string;
   marital_status: string;
@@ -36,7 +36,7 @@ interface PartnersData {
   pFirstname: string;
   pLastname: string;
   pAge: number;
-  pBirthdate: string;
+  pBirthdate: string | null;
   pOccupation: string;
   pIncome: string;
   contact_num: string;

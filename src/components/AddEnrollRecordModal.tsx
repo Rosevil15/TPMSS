@@ -490,7 +490,7 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
                                 {/* Other Fields */}
                                 {[
                                 { label: "Name of Institution / Training Center", key: "institutionOrCenter", type: "text" as const },
-                                { label: "Date Enrolled / Dropout", key: "enroll_dropout_Date", type: "date" as const },
+                                { label: "Date Enrolled / Dropped", key: "enroll_dropout_Date", type: "date" as const },
                                 ].map((item) => (
                                 <IonItem key={item.key} style={{ "--background": "#fff", "--color": "#000000" }}>
                                     <IonLabel position="stacked" style={{ '--color': '#000000' }}>{item.label}</IonLabel>

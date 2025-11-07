@@ -23,7 +23,6 @@ interface formState {
     stage_of_pregnancy: string;
     medical_history: string[];
     medical_history_others: string;
-    types_of_support: string[];
     num_of_pregnancies: number;
     tentanus_vacc: boolean;
     tetanus_dose: number;
@@ -40,7 +39,6 @@ const emptyForm: formState = {
     stage_of_pregnancy: '',
     medical_history: [],
     medical_history_others: '',
-    types_of_support: [],
     num_of_pregnancies: 0,
     tentanus_vacc: false,
     tetanus_dose: 0,
@@ -113,16 +111,13 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                 "Goiter",
                 "Anemia",
                 "Malnutrition",
-                "Genital Tract Infection"
+                "Genital Tract Infection",
+                "None"
             ];
 
-            // Parse medical_history and types_of_support from comma-separated strings
+            // Parse medical_history from comma-separated strings
             const medicalHistoryArray = editingHealth.medical_history 
                 ? editingHealth.medical_history.split(',').map((item: string) => item.trim())
-                : [];
-            
-            const typesSupportArray = editingHealth.types_of_support 
-                ? editingHealth.types_of_support.split(',').map((item: string) => item.trim())
                 : [];
 
             const knownMedicalHistory = medicalHistoryArray.filter((item: string) => 
@@ -144,7 +139,6 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                 stage_of_pregnancy: editingHealth.stage_of_pregnancy || '',
                 medical_history: knownMedicalHistory,
                 medical_history_others: otherMedicalHistory,
-                types_of_support: typesSupportArray,
                 num_of_pregnancies: editingHealth.num_of_pregnancies || 0,
                 tentanus_vacc: editingHealth.tentanus_vacc || false,
                 tetanus_dose: editingHealth.tetanus_dose || 0,
@@ -229,7 +223,11 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
         }));
     };
 
-    const handleCheckboxChange = (value: string, checked: boolean, field: 'medical_history' | 'types_of_support') => {
+    const handleCheckboxChange = (value: string, checked: boolean, field: 'medical_history') => {
+         console.log(`=== CHECKBOX CHANGE ===`);
+        console.log(`Field: ${field}, Value: ${value}, Checked: ${checked}`);
+        console.log(`Before change - ${field}:`, form[field]);
+        
         setForm((prevForm) => {
             const currentArray = prevForm[field] as string[];
             if (checked) {
@@ -241,121 +239,131 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                 return {
                     ...prevForm,
                     [field]: currentArray.filter((item) => item !== value),
+                   
                 };
+                
             }
         });
     };
+    
     const handleSave = async (e: { preventDefault: () => void }) => {
-        e.preventDefault();
-        if (!form.profileid) {
-            setError('Please select a profile');
-            return;
-        }
-        setSave(true);
-        setError(null);
+    e.preventDefault();
+    if (!form.profileid) {
+        setError('Please select a profile');
+        return;
+    }
+    setSave(true);
+    setError(null);
 
-        try {
-            // Combine medical_history array with others field
-            const medicalHistoryFinal = [...form.medical_history];
-            if (form.medical_history_others) {
-                medicalHistoryFinal.push(form.medical_history_others);
+    try {
+
+        const medicalHistoryFinal = [...form.medical_history];
+        if (form.medical_history_others && form.medical_history_others.trim()) {
+            medicalHistoryFinal.push(form.medical_history_others.trim());
+        }
+
+        
+        const medicalHistoryString = medicalHistoryFinal.length > 0 ? medicalHistoryFinal.join(', ') : '';
+
+        if (isEditing && editingHealth) {
+            // Update existing record
+            const payload = {
+                profileid: form.profileid,
+                pregnancy_status: form.pregnancy_status || null,
+                stage_of_pregnancy: form.stage_of_pregnancy || null,
+                medical_history: medicalHistoryString || null,
+                num_of_pregnancies: form.num_of_pregnancies || 0,
+                tentanus_vacc: form.tentanus_vacc,
+                tetanus_dose: form.tetanus_dose || 0,
+                date_of_last_mens_period: form.date_of_last_mens_period || null,
+                height: form.height || 0,
+                weight: form.weight || 0,
+                temperature: form.temperature || 0,
+            };
+
+            const { data, error } = await supabase
+                .from('maternalhealthRecord')
+                .update(payload)
+                .eq('health_id', editingHealth.health_id)
+                .select(); // Add select() to get the updated data back
+
+            if (error) {
+                console.error('UPDATE ERROR');
+                console.error('Supabase update error:', error);
+                throw error;
             }
 
-            const medicalHistoryString = medicalHistoryFinal.join(', ');
-            const typesSupportString = form.types_of_support.join(', ');
-
-            if (isEditing && editingHealth) {
-                // Update existing record
-                const payload = {
-                    profileid: form.profileid,
-                    pregnancy_status: form.pregnancy_status || null,
-                    stage_of_pregnancy: form.stage_of_pregnancy || null,
-                    medical_history: medicalHistoryString || null,
-                    types_of_support: typesSupportString || null,
-                    num_of_pregnancies: form.num_of_pregnancies || 0,
-                    tentanus_vacc: form.tentanus_vacc,
-                    tetanus_dose: form.tetanus_dose || 0,
-                    date_of_last_mens_period: form.date_of_last_mens_period || null,
-                    height: form.height || 0,
-                    weight: form.weight || 0,
-                    temperature: form.temperature || 0,
-                };
-
-                const { error } = await supabase
-                    .from('maternalhealthRecord')
-                    .update(payload)
-                    .eq('health_id', editingHealth.health_id);
-
-                if (error) throw error;
-
-                await onSave({ ...payload, health_id: editingHealth.health_id });
-                setForm(emptyForm);
-                onClose();
-            } else {
-                const currentYear = new Date().getFullYear();
-                let finalHealthId: number;
-                let attempts = 0;
-                const maxAttempts = 10;
+            await onSave({ ...payload, health_id: editingHealth.health_id });
+            setForm(emptyForm);
+            onClose();
+        } else {
+            const currentYear = new Date().getFullYear();
+            let finalHealthId: number;
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            do {
+                const randomNum = Math.floor(Math.random() * 10000);
+                finalHealthId = parseInt(`${currentYear}${randomNum.toString().padStart(4, '0')}`);
                 
-                do {
-                    const randomNum = Math.floor(Math.random() * 10000);
-                    finalHealthId = parseInt(`${currentYear}${randomNum.toString().padStart(4, '0')}`);
-                    
-                    // Check if this ID already exists
-                    const { data: existingRecord, error: checkError } = await supabase
-                        .from('maternalhealthRecord')
-                        .select('health_id')
-                        .eq('health_id', finalHealthId)
-                        .maybeSingle(); // Use maybeSingle() instead of single()
-
-                    if (checkError) {
-                        console.error('Error checking existing health_id:', checkError);
-                        throw checkError;
-                    }
-
-                    if (!existingRecord) {
-                        break;
-                    }
-
-                    attempts++;
-                    if (attempts >= maxAttempts) {
-                        throw new Error('Could not generate unique health ID after multiple attempts');
-                    }
-                } while (attempts < maxAttempts);
-                
-                // Create new record
-                const payload = {
-                    health_id: finalHealthId,
-                    profileid: form.profileid,
-                    pregnancy_status: form.pregnancy_status || null,
-                    stage_of_pregnancy: form.stage_of_pregnancy || null,
-                    medical_history: medicalHistoryString || null,
-                    types_of_support: typesSupportString || null,
-                    num_of_pregnancies: form.num_of_pregnancies || 0,
-                    tentanus_vacc: form.tentanus_vacc,
-                    tetanus_dose: form.tetanus_dose || 0,
-                    date_of_last_mens_period: form.date_of_last_mens_period || null,
-                    height: form.height || 0,
-                    weight: form.weight || 0,
-                    temperature: form.temperature || 0,
-                };
-
-                const { error } = await supabase
+                // Check if this ID already exists
+                const { data: existingRecord, error: checkError } = await supabase
                     .from('maternalhealthRecord')
-                    .insert(payload)
-                    
+                    .select('health_id')
+                    .eq('health_id', finalHealthId)
+                    .maybeSingle();
 
-                if (error) throw error;
+                if (checkError) {
+                    console.error('Error checking existing health_id:', checkError);
+                    throw checkError;
+                }
 
-                await onSave(payload);
-                setForm(emptyForm);
-                onClose();
+                if (!existingRecord) {
+                    break;
+                }
+
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    throw new Error('Could not generate unique health ID after multiple attempts');
+                }
+            } while (attempts < maxAttempts);
+            
+            // Create new record
+            const payload = {
+                health_id: finalHealthId,
+                profileid: form.profileid,
+                pregnancy_status: form.pregnancy_status || null,
+                stage_of_pregnancy: form.stage_of_pregnancy || null,
+                medical_history: medicalHistoryString || null,
+                num_of_pregnancies: form.num_of_pregnancies || 0,
+                tentanus_vacc: form.tentanus_vacc,
+                tetanus_dose: form.tetanus_dose || 0,
+                date_of_last_mens_period: form.date_of_last_mens_period || null,
+                height: form.height || 0,
+                weight: form.weight || 0,
+                temperature: form.temperature || 0,
+            };
+
+            const { data, error } = await supabase
+                .from('maternalhealthRecord')
+                .insert(payload)
+                .select(); 
+
+            if (error) {
+                console.error('=== INSERT ERROR ===');
+                console.error('Supabase insert error:', error);
+                throw error;
             }
-        } catch (error: any) {
-            setError(error.message || 'An error occurred while saving');
-        } finally {
-            setSave(false);
+
+            await onSave(payload);
+            setForm(emptyForm);
+            onClose();
         }
+    } catch (error: any) {
+        setError(error.message || 'An error occurred while saving');
+    } finally {
+        setSave(false);
+    }
     };
 
     const showEmptyProfilesMessage = useMemo(
@@ -374,10 +382,9 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
         "Goiter",
         "Anemia",
         "Malnutrition",
-        "Genital Tract Infection"
+        "Genital Tract Infection",
+        "None"
     ];
-
-    const supportTypes = ["Family Support", "Counseling",];
 
     return (
         <IonModal isOpen={isOpen} onDidDismiss={onClose} style={{'--width':'100%','--height':'100%',}}>
@@ -745,36 +752,6 @@ const AddHealthRecord: React.FC<AddHealthRecordProps> = ({ isOpen, onClose, onSa
                                             </IonCol>
                                         </IonRow>
                                     </IonGrid>
-                            </IonItemGroup>
-
-                            {/* SOCIAL SUPPORT NEEDS */}
-                            <IonItemGroup>
-                                <IonItemDivider
-                                    style={{
-                                        "--color": "#000",
-                                        fontWeight: "bold",
-                                        "--background": "#fff",
-                                    }}
-                                >
-                                    Social Support Needs
-                                </IonItemDivider>
-
-                                <IonRow>
-                                    {supportTypes.map((support) => (
-                                        <IonCol size="6" key={support}>
-                                            <IonItem lines="none" style={{ "--background": "#fff", "--color": "#000" }}>
-                                                <IonCheckbox
-                                                    checked={form.types_of_support.includes(support)}
-                                                    onIonChange={(e) => handleCheckboxChange(support, e.detail.checked, 'types_of_support')}
-                                                    disabled={save}
-                                                    labelPlacement="end"
-                                                >
-                                                    {support}
-                                                </IonCheckbox>
-                                            </IonItem>
-                                        </IonCol>
-                                    ))}
-                                </IonRow>
                             </IonItemGroup>
 
                             {/* BUTTONS */}

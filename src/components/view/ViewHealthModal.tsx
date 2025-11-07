@@ -1,4 +1,4 @@
-import { IonBadge, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonItem, IonItemDivider, IonItemGroup, IonLabel, IonModal, IonPage, IonRow, IonSpinner, IonText, IonTitle, IonToolbar } from '@ionic/react';
+import { IonBadge, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonItem, IonItemDivider, IonItemGroup, IonLabel, IonModal, IonRow, IonSpinner, IonText, IonTitle, IonToolbar } from '@ionic/react';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../utils/supabaseClients';
 import { checkmarkCircleOutline, closeCircleOutline, medical } from 'ionicons/icons';
@@ -418,47 +418,6 @@ const ViewHealthModal: React.FC<ViewHealthModalProps> = ({ isOpen, onClose, heal
                                     </IonRow>
                                 </IonItemGroup>
 
-                                {/* Support */}
-                                <IonItemGroup>
-                                    <IonItemDivider
-                                        style={{
-                                            "--color": "#000",
-                                            fontWeight: "bold",
-                                            "--background": "#fff",
-                                        }}
-                                    >
-                                        Social Support Needs
-                                    </IonItemDivider>
-
-                                    <IonRow>
-                                        <IonCol size="12">
-                                            <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                <IonLabel style={{ whiteSpace: 'normal' }}>
-                                                    {formatSupport(healthData.types_of_support).length > 0 &&
-                                                        formatSupport(healthData.types_of_support)[0] !== 'None' ? (
-                                                        <div>
-                                                            {formatSupport(healthData.types_of_support).map((support: string, index: number) => (
-                                                                <IonBadge
-                                                                    key={index}
-                                                                    color="primary"
-                                                                    style={{
-                                                                        margin: '4px',
-                                                                        padding: '8px 12px',
-                                                                        fontSize: '0.9rem'
-                                                                    }}
-                                                                >
-                                                                    {support}
-                                                                </IonBadge>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        <em>No support needs specified</em>
-                                                    )}
-                                                </IonLabel>
-                                            </IonItem>
-                                        </IonCol>
-                                    </IonRow>
-                                </IonItemGroup>
 
                                 {/* RECORD METADATA */}
                                 {healthData.createdAt && (

@@ -208,7 +208,6 @@ export const generateHealthReport = async (locationFilter: LocationFilter, locat
         h.stage_of_pregnancy || 'N/A',
         h.num_of_pregnancies?.toString() || 'N/A',
         h.medical_history || 'None',
-        h.types_of_support || 'None',
     ]);
 
     const reportTitle = `Maternal Health Records Report - ${locationText}`;

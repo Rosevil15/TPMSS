@@ -1,7 +1,8 @@
-import { IonAlert, IonButton, IonCard, IonCardContent, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonPage, IonRow, IonText, IonTitle, IonToast, IonToolbar, useIonLoading, useIonRouter } from '@ionic/react';
+import { IonAlert, IonButton, IonCard, IonCardContent, IonCheckbox, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonLabel, IonPage, IonRow, IonText, IonTitle, IonToast, IonToolbar, useIonLoading, useIonRouter } from '@ionic/react';
 import React, { useState } from 'react';
-import { logIn, logoGoogle, mailOutline, lockClosedOutline } from 'ionicons/icons';
+import { logIn, logoGoogle, mailOutline, lockClosedOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 import { supabase } from '../utils/supabaseClients';
+import PrivacyAgreementModal from '../components/PrivacyAgreementModal';
 
 const Alertbox: React.FC<{
     message: string;
@@ -29,6 +30,59 @@ const Login: React.FC = () => {
     const [showToast, setShowToast] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [agreedToPrivacySocial, setAgreedToPrivacySocial] = useState(true); 
+    const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+    const [pendingUser, setPendingUser] = useState<any>(null);
+
+    const handlePrivacyAcceptance = async () => {
+        if (!pendingUser) return;
+
+        try {
+            // Update user's privacy agreement in database
+            const { error } = await supabase
+                .from('users')
+                .update({
+                    privacy_agreement: true,
+                    privacy_agreed_at: new Date().toISOString()
+                })
+                .eq('auth_id', pendingUser.id);
+
+            if (error) {
+                console.error('Error updating privacy agreement:', error);
+                setErrorMessage('Error updating privacy agreement');
+                setShowAlert(true);
+                return;
+            }
+
+            setShowPrivacyModal(false);
+            setPendingUser(null);
+
+            // Continue with login flow
+            const userData = await supabase
+                .from('users')
+                .select('active, role')
+                .eq('auth_id', pendingUser.id)
+                .single();
+
+            if (userData.data) {
+                const userRole = userData.data.role;
+                const adminRoles = ['admin', 'healthworker', 'socialworker', 'school'];
+
+                setShowToast(true);
+                setTimeout(() => {
+                    if (adminRoles.includes(userRole)) {
+                        router.push('/admin', 'forward', 'replace');
+                    } else {
+                        router.push('/home', 'forward', 'replace');
+                    }
+                }, 1000);
+            }
+        } catch (error) {
+            console.error('Privacy agreement error:', error);
+            setErrorMessage('Error processing privacy agreement');
+            setShowAlert(true);
+        }
+    };
 
     //Function to handle email and password login
     const doLogin = async () => {   
@@ -67,18 +121,18 @@ const Login: React.FC = () => {
                 
                 const { data: userData, error: userError } = await supabase
                     .from('users')
-                    .select('active, role')
+                    .select('active, role, privacy_agreement')
                     .eq('auth_id', data.user.id)
                     .single();
 
-                console.log('User active status:', userData); 
+                 
 
                 if (userError) {
                     console.error('Error fetching user data:', userError);
                     
                     
                     if (userError.code === 'PGRST116') {
-                        console.log('User not found in users table, treating as active');
+                        
                         
                         setShowToast(true);
                         setTimeout(() => {
@@ -103,9 +157,14 @@ const Login: React.FC = () => {
                         return;
                     }
 
-                    const userRole = userData.role;
-                    //console.log('User role:', userRole);
+                    if (!userData?.privacy_agreement) {
+                        console.log('User has not agreed to privacy policy, showing modal');
+                        setPendingUser(data.user);
+                        setShowPrivacyModal(true);
+                        return; // Don't continue login flow
+                    }
 
+                    const userRole = userData.role;
                     const adminRoles = ['admin', 'healthworker', 'socialworker', 'school'];
 
                     setShowToast(true);
@@ -132,6 +191,13 @@ const Login: React.FC = () => {
 
 
     const socialLogin = async (provider: 'google' | 'facebook') => {
+
+        if (!agreedToPrivacySocial) {
+            setErrorMessage("Please agree to the Data Privacy Act to continue with social login");
+            setShowAlert(true);
+            return;
+        }
+
         await present('Signing in...');
         try {
             const { error } = await supabase.auth.signInWithOAuth({
@@ -306,6 +372,35 @@ const Login: React.FC = () => {
                                         <div style={{ flex: 1, height: '1px', background: '#ddd' }}></div>
                                     </div>
 
+                                    <div style={{ marginBottom: '16px', padding: '12px', border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
+                                        <IonItem 
+                                            lines="none" 
+                                            style={{ 
+                                                '--background': 'transparent',
+                                                '--padding-start': '0px',
+                                                '--inner-padding-end': '0px'
+                                            }}
+                                        >
+                                            <IonCheckbox 
+                                                checked={agreedToPrivacySocial}
+                                                onIonChange={(e) => setAgreedToPrivacySocial(e.detail.checked)}
+                                                slot="start"
+                                                style={{ 
+                                                    '--checkmark-color': 'white',
+                                                    '--background-checked': '#002d54',
+                                                    '--border-color-checked': '#002d54',
+                                                    marginRight: '8px'
+                                                }}
+                                            />
+                                            <IonLabel style={{ fontSize: '0.8rem', lineHeight: '1.3' }}>
+                                                <IonText style={{ color: '#333' }}>
+                                                    <IonIcon icon={shieldCheckmarkOutline} style={{ color: '#002d54', marginRight: '4px', fontSize: '14px' }} />
+                                                    I agree to the <strong style={{ color: '#002d54' }}>Data Privacy Act</strong>
+                                                </IonText>
+                                            </IonLabel>
+                                        </IonItem>
+                                    </div>
+
                                     {/* Social Login Buttons */}
                                     <div style={{ marginBottom: '24px' }}>
                                         <IonButton
@@ -363,6 +458,13 @@ const Login: React.FC = () => {
                     color='success'
                     position="top"
                 />
+
+                <PrivacyAgreementModal 
+                    isOpen={showPrivacyModal}
+                    onAccept={handlePrivacyAcceptance}
+                    canClose={false} 
+                />
+
 
             </IonContent>
         </IonPage>

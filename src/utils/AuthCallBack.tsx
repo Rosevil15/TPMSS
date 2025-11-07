@@ -23,7 +23,7 @@ const AuthCallback: React.FC = () => {
       // Check if user already exists
       const { data: existingAccount, error: fetchError } = await supabase
         .from("users")
-        .select("role, auth_id, active")
+        .select("role, auth_id, active, privacy_agreement")
         .eq("email", user.email)
         .maybeSingle();
 
@@ -70,7 +70,9 @@ const AuthCallback: React.FC = () => {
             email: user.email,
             role: "user",
             auth_id: user.id,
-            active: true, // New users are active by default
+            active: true, 
+            privacy_agreement: true,
+            privacy_agreed_at: new Date().toISOString()
           },
         ]);
 
@@ -78,6 +80,20 @@ const AuthCallback: React.FC = () => {
           console.error("Insert error:", insertError.message);
           router.push("/login", "root", "replace");
           return;
+        }
+      } else {
+          if (!existingAccount.privacy_agreement) {
+          const { error: updatePrivacyError } = await supabase
+            .from("users")
+            .update({ 
+              privacy_agreement: true,
+              privacy_agreed_at: new Date().toISOString()
+            })
+            .eq("email", user.email);
+
+          if (updatePrivacyError) {
+            console.error("Privacy update error:", updatePrivacyError.message);
+          }
         }
       }
 

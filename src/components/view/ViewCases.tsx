@@ -12,7 +12,6 @@ interface ViewCasesProps {
 interface CaseData {
     caseid: number;
     profileid: number;
-    case_type: string;
     case_created_by: string;
     guid_received_from: string;
     guidance_type: string;
@@ -204,10 +203,6 @@ const ViewCases: React.FC<ViewCasesProps> = ({ isOpen, onClose, caseId }) => {
                                         label="Case ID" 
                                         value={caseData.caseid}
                                         icon={documentTextOutline}
-                                    />
-                                    <InfoRow 
-                                        label="Case Type" 
-                                        value={caseData.case_type}
                                     />
                                     <InfoRow 
                                         label="Created By" 

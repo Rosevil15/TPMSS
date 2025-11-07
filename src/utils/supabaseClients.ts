@@ -7,7 +7,4 @@ if (!supabaseUrl || !supabaseKey) {
     throw new Error('Missing Supabase credentials');
 }
 
-console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Missing');
-console.log('Supabase Key:', supabaseKey ? 'Set' : 'Missing');
-
 export const supabase = createClient(supabaseUrl, supabaseKey);

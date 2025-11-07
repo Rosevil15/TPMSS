@@ -1,8 +1,8 @@
-import { IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonModal, IonPage, IonRow, IonSelect, IonSelectOption, IonText, IonTitle, IonToolbar, useIonRouter } from '@ionic/react';
+import { IonAlert, IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonCheckbox, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonInput, IonInputPasswordToggle, IonItem, IonLabel, IonModal, IonPage, IonRow, IonSelect, IonSelectOption, IonText, IonTitle, IonToolbar, useIonRouter } from '@ionic/react';
 import React, { use, useState } from 'react';
 import { supabase } from '../utils/supabaseClients';
 import bcrypt from 'bcryptjs';
-import { personOutline, mailOutline, lockClosedOutline, checkmarkCircleOutline } from 'ionicons/icons';
+import { personOutline, mailOutline, lockClosedOutline, checkmarkCircleOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 
 const AlertBox: React.FC<{ message: string; isOpen: boolean; onClose: () => void }> = ({ message, isOpen, onClose }) => {
   return (
@@ -23,6 +23,7 @@ const Register: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [showAlert, setShowAlert] = useState(false);
     const [showVerifycationModal, setShowVerifycationModal] = useState(false);
@@ -34,6 +35,13 @@ const Register: React.FC = () => {
     const handleVerification = () => {
         if (!FirstName || !LastName || !username || !email || !password || !confirmPassword) {
             setErrorMessage('Please fill in all fields');
+            setShowAlert(true);
+            return;
+        }
+
+        // Add privacy agreement validation
+        if (!agreedToPrivacy) {
+            setErrorMessage('Please agree to the Data Privacy Act to continue');
             setShowAlert(true);
             return;
         }
@@ -51,8 +59,7 @@ const Register: React.FC = () => {
         }
 
         setShowVerifycationModal(true);
-    }
-
+    };
     {/*function to handle account creation*/}
     const handleSignup = async () => {
         setShowVerifycationModal(false);
@@ -75,11 +82,11 @@ const Register: React.FC = () => {
         }
 
         if (authData.user) {
-            // Hash the password
+            //hash password before storing
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(password, salt);
 
-            // Store user data in users table with auth_id and encrypted password
+            
             const { error: insertError } = await supabase.from("users")
                 .insert([
                     {
@@ -89,7 +96,9 @@ const Register: React.FC = () => {
                         userfirstName: FirstName,
                         userlastName: LastName,
                         password: hashedPassword,
-                        role: 'teenager'
+                        role: 'teenager',
+                        privacy_agreement: agreedToPrivacy, 
+                        privacy_agreed_at: new Date().toISOString() 
                     }
                 ]);
 
@@ -297,6 +306,43 @@ const Register: React.FC = () => {
                                             </IonCol>
                                         </IonRow>
 
+                                        {/* Data Privacy Agreement */}
+                                        <IonRow>
+                                            <IonCol>
+                                                <div style={{ marginBottom: '20px', padding: '16px', border: '2px solid #e0e0e0', borderRadius: '12px', backgroundColor: '#f9f9f9' }}>
+                                                    <IonItem 
+                                                        lines="none" 
+                                                        style={{ 
+                                                            '--background': 'transparent',
+                                                            '--padding-start': '0px',
+                                                            '--inner-padding-end': '0px'
+                                                        }}
+                                                    >
+                                                        <IonCheckbox 
+                                                            checked={agreedToPrivacy}
+                                                            onIonChange={(e) => setAgreedToPrivacy(e.detail.checked)}
+                                                            slot="start"
+                                                            style={{ 
+                                                                '--checkmark-color': 'white',
+                                                                '--background-checked': '#002d54',
+                                                                '--border-color-checked': '#002d54',
+                                                                marginRight: '12px'
+                                                            }}
+                                                        />
+                                                        <IonLabel style={{ fontSize: '0.9rem', lineHeight: '1.4' }}>
+                                                            <IonText style={{ color: '#333' }}>
+                                                                <IonIcon icon={shieldCheckmarkOutline} style={{ color: '#002d54', marginRight: '4px' }} />
+                                                                I agree to the <strong style={{ color: '#002d54' }}>Data Privacy Act (RA 10173)</strong> and 
+                                                                understand that my personal information will be collected and processed solely for 
+                                                                <strong> analysis purposes</strong> to improve maternal and child health services. 
+                                                                I consent to the secure storage and authorized use of my data.
+                                                            </IonText>
+                                                        </IonLabel>
+                                                    </IonItem>
+                                                </div>
+                                            </IonCol>
+                                        </IonRow>
+
                                         {/* Register Button */}
                                         <IonRow>
                                             <IonCol>
@@ -388,6 +434,16 @@ const Register: React.FC = () => {
                                         <IonCardTitle style={{ color: '#000', fontSize: '1.125rem' }}>
                                             {FirstName} {LastName}
                                         </IonCardTitle>
+                                    </div>
+
+                                    <div style={{ marginBottom: '24px', padding: '12px', backgroundColor: '#e8f5e8', borderRadius: '8px' }}>
+                                        <IonCardSubtitle style={{ color: '#666', fontSize: '0.875rem', marginBottom: '4px' }}>
+                                            Data Privacy Agreement
+                                        </IonCardSubtitle>
+                                        <IonText style={{ color: '#28a745', fontSize: '0.9rem' }}>
+                                            <IonIcon icon={checkmarkCircleOutline} style={{ marginRight: '4px' }} />
+                                            Agreed to Data Privacy Act (RA 10173)
+                                        </IonText>
                                     </div>
 
                                     <IonRow>

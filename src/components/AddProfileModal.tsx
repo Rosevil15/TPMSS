@@ -374,6 +374,11 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
           }
       }
 
+      const formatDateForDB = (dateString: string) => {
+      return dateString && dateString.trim() !== '' ? dateString : null;
+    };
+    
+
       const partnerid = profileId;
       
       // Prepare payloads
@@ -382,7 +387,7 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
         firstName: profileData.firstName || '',
         lastName: profileData.lastName || '',
         age: profileData.age || 0,
-        birthdate: profileData.birthdate || '',
+        birthdate: formatDateForDB(profileData.birthdate),
         contactnum: profileData.contactnum || '',
         barangay: profileData.barangay || '',
         municipality: profileData.municipality || '',
@@ -411,7 +416,7 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
         pFirstname: partnersData.pFirstname || '',
         pLastname: partnersData.pLastname || '',
         pAge: partnersData.pAge || 0,
-        pBirthdate: partnersData.pBirthdate || '',
+        pBirthdate: formatDateForDB(partnersData.pBirthdate),
         pOccupation: partnersData.pOccupation || '',
         pIncome: partnersData.pIncome || '',
         contact_num: partnersData.contact_num || '',

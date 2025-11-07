@@ -21,7 +21,6 @@ interface ProfileOption {
 interface FormState {
     profileid: number | null;
     profileSearch: string;
-    case_type: string;
     case_created_by: string;
     guid_received_from: string;
     guidance_type: string;
@@ -36,7 +35,6 @@ interface FormState {
 const emptyForm: FormState= {
     profileid: null,
     profileSearch: '',
-    case_type: '',
     case_created_by: '',
     guid_received_from: '',
     guidance_type: '',
@@ -111,7 +109,6 @@ const AddCaseModal: React.FC<AddCaseModalProps> = ({
                 setForm({
                     profileid: editingCase.profileid,
                     profileSearch: profileSearchText,
-                    case_type: editingCase.case_type || '',
                     case_created_by: editingCase.case_created_by || '',
                     guid_received_from: editingCase.guid_received_from || '',
                     guidance_type: editingCase.guidance_type || '',
@@ -242,7 +239,6 @@ const AddCaseModal: React.FC<AddCaseModalProps> = ({
                 // Update existing record
                 const payload = {
                     profileid: form.profileid,
-                    case_type: form.case_type || null,
                     case_created_by: form.case_created_by || null,
                     guid_received_from: form.guid_received_from || null,
                     guidance_type: form.guidance_type || null,
@@ -275,7 +271,6 @@ const AddCaseModal: React.FC<AddCaseModalProps> = ({
                 const payLoad = {
                     caseid: newCaseId,
                     profileid: form.profileid,
-                    case_type: form.case_type || null,
                     case_created_by: form.case_created_by || null,
                     guid_received_from: form.guid_received_from || null,
                     guidance_type: form.guidance_type || null,

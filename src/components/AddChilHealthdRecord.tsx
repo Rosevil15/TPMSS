@@ -1,4 +1,4 @@
-import { IonButton, IonCard, IonCardContent, IonCheckbox, IonCol, IonContent, IonGrid, IonHeader, IonInput, IonItem, IonItemDivider, IonItemGroup, IonModal, IonPage, IonRow, IonSelect, IonSelectOption, IonTitle, IonToolbar } from '@ionic/react';
+import { IonButton, IonCard, IonCardContent, IonCheckbox, IonCol, IonContent, IonGrid, IonHeader, IonInput, IonItem, IonItemDivider, IonItemGroup, IonLabel, IonModal, IonPage, IonRow, IonSelect, IonSelectOption, IonTitle, IonToolbar } from '@ionic/react';
 import { search } from 'ionicons/icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../utils/supabaseClients';
@@ -21,7 +21,9 @@ interface FormState {
     healthSearch: string;
     childName: string;
     childAge: string;
+    gender: string;
     height: number;
+    status: string;
     weight: number;
     head_circumference: number;
     BCG: boolean;
@@ -32,6 +34,7 @@ interface FormState {
     pneumoccal_conjugate: boolean;
     measles_rubella: boolean;
     type_of_delivery: string;
+    complications: string;
 }
 
 const emptyForm : FormState = {
@@ -39,8 +42,10 @@ const emptyForm : FormState = {
     healthSearch: '',
     childName: '',
     childAge: '',
+    gender: '',
     height: 0,
     weight: 0,
+    status: '',
     head_circumference: 0,
     BCG: false,
     heaptitis_b: false,
@@ -50,6 +55,7 @@ const emptyForm : FormState = {
     pneumoccal_conjugate: false,
     measles_rubella: false,
     type_of_delivery: '',
+    complications: '',
 };
 
 const AddChildHealthRecord: React.FC<AddChildHealthRecordProps> = ({ isOpen, onClose, onSave }) => {
@@ -180,6 +186,8 @@ const AddChildHealthRecord: React.FC<AddChildHealthRecordProps> = ({ isOpen, onC
             height: form.height || 0,
             weight: form.weight || 0,
             health_id: form.health_id,
+            gender: form.gender,
+            status: form.status,
             BCG: form.BCG,
             heaptitis_b: form.heaptitis_b,
             pentavalent_vaccine: form.pentavalent_vaccine,
@@ -189,6 +197,7 @@ const AddChildHealthRecord: React.FC<AddChildHealthRecordProps> = ({ isOpen, onC
             Measssles_rubella: form.measles_rubella,
             type_of_delivery: form.type_of_delivery || null,
             head_circumference: form.head_circumference || 0,
+            complications: form.complications || null,
         };
 
         const { error } = await supabase
@@ -382,6 +391,61 @@ const AddChildHealthRecord: React.FC<AddChildHealthRecordProps> = ({ isOpen, onC
                                                 <IonSelectOption value="Cesarean Section">Cesarean Section (C-Section)</IonSelectOption>
                                                 <IonSelectOption value="Assisted Delivery">Assisted Delivery (Forceps/Vacuum)</IonSelectOption>
                                             </IonSelect>
+                                        </IonItem>
+                                    </IonCol>
+
+                                    <IonCol size="12" size-md="6">
+                                        <IonItem lines="none" style={{ '--background': '#fff' }}>
+                                            <IonSelect
+                                                className="ion-margin"
+                                                label="Gender"
+                                                labelPlacement="floating"
+                                                fill="outline"
+                                                value={form.gender}
+                                                onIonChange={(e) => handleChange('gender', e.detail.value)}
+                                                style={{ '--color': '#000' }}
+                                                disabled={save}
+                                            >
+                                                <IonSelectOption value="Male">Male</IonSelectOption>
+                                                <IonSelectOption value="Female">Female</IonSelectOption>
+                                            </IonSelect>
+                                        </IonItem>
+                                    </IonCol>
+                                </IonRow>
+
+                                <IonRow>
+                                    <IonCol size="12" size-md="6">
+                                        <IonLabel style={{ fontWeight: 'bold', color: '#000',marginLeft:'10px' }}>Status</IonLabel>
+                                        <IonItem lines="none" style={{ '--background': '#fff' }}>
+                                            
+                                            <IonSelect
+                                                className="ion-margin"
+                                                label="Select Status"
+                                                labelPlacement="floating"
+                                                fill="outline"
+                                                value={form.status}
+                                                onIonChange={(e) => handleChange('status', e.detail.value)}
+                                                style={{ '--color': '#000' }}
+                                                disabled={save}
+                                            >
+                                                <IonSelectOption value="Normal"> Normal</IonSelectOption>
+                                                <IonSelectOption value="With Health Complications">With Health Complications</IonSelectOption>
+                                            </IonSelect>
+                                        </IonItem>
+                                    </IonCol>
+
+                                    <IonCol size="12" size-md="6">
+                                        <IonItem lines="none" style={{ '--background': '#fff' }}>
+                                            <IonInput
+                                                
+                                                label="What Type of Complications?"
+                                                labelPlacement='floating'
+                                                fill='outline'
+                                                value={form.complications}
+                                                onIonChange={(e) => handleChange('complications', e.detail.value || '')}
+                                                style={{ '--color': '#000',marginTop:'40px' }}
+                                                disabled={form.status !== 'With Health Complications' || save}
+                                            />
                                         </IonItem>
                                     </IonCol>
                                 </IonRow>

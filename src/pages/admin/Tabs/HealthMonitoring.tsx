@@ -12,7 +12,6 @@ interface HealthMonitoring {
     profileid: number;
     medical_history: string;
     pregnancy_status: string;
-    types_of_support: string;
     stage_of_pregnancy: string;
     num_of_pregnancies: number;
     tentanus_vacc: boolean;
@@ -61,7 +60,6 @@ const HealthMonitoring: React.FC<HealthMonitoringProps> = ({ searchQuery = '' })
                 profileid,
                 medical_history,
                 pregnancy_status,
-                types_of_support,
                 stage_of_pregnancy,
                 num_of_pregnancies,
                 tentanus_vacc,

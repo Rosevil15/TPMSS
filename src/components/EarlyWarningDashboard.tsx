@@ -252,7 +252,7 @@ const EarlyWarningDashboard: React.FC<EarlyWarningDashboardProps> = ({
                         <IonCol size="12">
                             <IonButton
                                 expand="block"
-                                color="danger"
+                                color="primary"
                                 onClick={onGenerateReport}
                                 disabled={loading || earlyWarnings.length === 0}
                             >

@@ -1,7 +1,7 @@
 import { IonBadge, IonButton, IonCard, IonCardContent, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonItem, IonItemDivider, IonItemGroup, IonLabel, IonModal, IonPage, IonRow, IonSpinner, IonText, IonTitle, IonToolbar } from '@ionic/react';
 import React, { use, useEffect, useState } from 'react';
 import { supabase } from '../../utils/supabaseClients';
-import { personOutline, homeOutline, schoolOutline, medicalOutline, peopleOutline, briefcaseOutline, callOutline, heartOutline } from 'ionicons/icons';
+import { personOutline, homeOutline, schoolOutline, peopleOutline, briefcaseOutline, callOutline, heartOutline } from 'ionicons/icons';
 
 interface ViewProfileModalProps {
     isOpen: boolean;
@@ -14,7 +14,6 @@ const ViewProfileModal: React.FC<ViewProfileModalProps> = ({ isOpen, onClose, pr
     const [error, setError] = useState<string | null>(null);
     const [profileData, setProfileData] = useState<any>(null);
     const [partnerData, setPartnerData] = useState<any>(null);
-    const [healthData, setHealthData] = useState<any>(null);
 
     useEffect(() => {
         if (isOpen && profileId) {
@@ -45,27 +44,14 @@ const ViewProfileModal: React.FC<ViewProfileModalProps> = ({ isOpen, onClose, pr
                 .eq('profileid', profileId)
                 .maybeSingle();
 
-            // Fetch health data if it exists
-            const { data: health, error: healthError } = await supabase
-                .from('healthRecords')
-                .select('*')
-                .eq('profileid', profileId)
-                .maybeSingle();
-
             setProfileData(profile);
             setPartnerData(partner);
-            setHealthData(health);
         } catch (error: any) {
             console.error('Error fetching profile data', error);
             setError(error.message);
         } finally {
             setLoading(false);
         }
-    };
-
-    const formatMedicalHistory = (medicalHistory: string) => {
-        if (!medicalHistory) return ['N/A'];
-        return medicalHistory.split(',').map(item => item.trim());
     };
 
     return (
@@ -699,95 +685,6 @@ const ViewProfileModal: React.FC<ViewProfileModalProps> = ({ isOpen, onClose, pr
                                             </IonRow>
                                         </IonGrid>
                                     </IonItemGroup>
-                                </IonCardContent>
-                            </IonCard>
-                        )}
-
-                        {/* HEALTH STATUS */}
-                        {healthData ? (
-                            <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#fff", marginBottom: '20px' }}>
-                                <IonCardContent>
-                                    <h2 style={{ color: "black", fontWeight: "bold", backgroundColor: '#fff', padding: '10px', fontSize: '1.5rem', borderBottom: '2px solid #002d54', display: 'flex', alignItems: 'center' }}>
-                                        <IonIcon icon={medicalOutline} style={{ marginRight: '10px' }} />
-                                        Health Information
-                                    </h2>
-
-                                    <IonItemGroup>
-                                        <IonItemDivider
-                                            style={{
-                                                "--color": "#002d54",
-                                                fontWeight: "bold",
-                                                "--background": "#fff",
-                                                fontSize: "18px",
-                                            }}
-                                        >
-                                            <IonIcon icon={medicalOutline} style={{ marginRight: '8px' }} />
-                                            Pregnancy Information
-                                        </IonItemDivider>
-
-                                        <IonGrid>
-                                            <IonRow>
-                                                <IonCol size="12" sizeMd="6">
-                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                        <IonLabel>
-                                                            <strong>Pregnancy Status:</strong>{' '}
-                                                            <IonBadge color={healthData.pregnancy_status === 'Pregnant' ? 'success' : 'medium'}>
-                                                                {healthData.pregnancy_status || 'N/A'}
-                                                            </IonBadge>
-                                                        </IonLabel>
-                                                    </IonItem>
-                                                </IonCol>
-                                                <IonCol size="12" sizeMd="6">
-                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                        <IonLabel>
-                                                            <strong>Stage of Pregnancy:</strong> {healthData.stage_of_pregnancy || 'N/A'}
-                                                        </IonLabel>
-                                                    </IonItem>
-                                                </IonCol>
-                                            </IonRow>
-
-                                            <IonRow>
-                                                <IonCol size="12">
-                                                    <IonItem lines="none" style={{ "--background": "#fff" }}>
-                                                        <IonLabel style={{ whiteSpace: 'normal' }}>
-                                                            <strong>Medical History:</strong>
-                                                            <div style={{ marginTop: '8px' }}>
-                                                                {formatMedicalHistory(healthData.medical_history).length > 0 ? (
-                                                                    formatMedicalHistory(healthData.medical_history).map((condition: string, index: number) => (
-                                                                        <IonBadge
-                                                                            key={index}
-                                                                            color="danger"
-                                                                            style={{
-                                                                                margin: '4px',
-                                                                                padding: '8px 12px',
-                                                                                fontSize: '0.9rem'
-                                                                            }}
-                                                                        >
-                                                                            {condition}
-                                                                        </IonBadge>
-                                                                    ))
-                                                                ) : (
-                                                                    <em>No medical history recorded</em>
-                                                                )}
-                                                            </div>
-                                                        </IonLabel>
-                                                    </IonItem>
-                                                </IonCol>
-                                            </IonRow>
-                                        </IonGrid>
-                                    </IonItemGroup>
-                                </IonCardContent>
-                            </IonCard>
-                        ) : (
-                            <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#fff", marginBottom: '20px' }}>
-                                <IonCardContent>
-                                    <h2 style={{ color: "black", fontWeight: "bold", backgroundColor: '#fff', padding: '10px', fontSize: '1.5rem', borderBottom: '2px solid #002d54', display: 'flex', alignItems: 'center' }}>
-                                        <IonIcon icon={medicalOutline} style={{ marginRight: '10px' }} />
-                                        Health Information
-                                    </h2>
-                                    <IonText color="medium">
-                                        <p style={{ textAlign: 'center', padding: '20px' }}>No health records available</p>
-                                    </IonText>
                                 </IonCardContent>
                             </IonCard>
                         )}
