@@ -356,7 +356,7 @@ const ProfileManagement: React.FC<ProfileManagementProps> = ({ searchQuery = '' 
                         setEditingProfile(null);
                     }}
                     onSave={async (profileData) => {
-                        console.log("Saved profile:", profileData);
+                        //console.log("Saved profile:", profileData);
                         await loadData(); 
                         setToastMessage(isEditing ? 'Profile updated successfully!' : 'Profile added successfully!');
                         setShowToast(true);

@@ -15,6 +15,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ searchQuery = '' }) => 
     const [toastMessage, setToastMessage] = useState('');
     const [showToast, setShowToast] = useState(false);
     const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
+    const [editingUser, setEditingUser] = useState<any>(null);
+    const [isEditing, setIsEditing] = useState(false);
     
     useIonViewWillEnter(() => {
         //console.log("UserManagement view entered");
@@ -255,6 +257,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ searchQuery = '' }) => 
                                                     size="small"
                                                     fill="outline"
                                                     style={{ marginRight: "5px",}}
+                                                    onClick={() => {
+                                                        setEditingUser(user);
+                                                        setIsEditing(true);
+                                                        setShowAddModal(true);
+                                                    }}
                                                 >
                                                     Edit
                                                 </IonButton>
@@ -294,11 +301,15 @@ const UserManagement: React.FC<UserManagementProps> = ({ searchQuery = '' }) => 
                     isOpen={showAddModal}
                     onClose={() => setShowAddModal(false)}
                     onSave={async (userData) => {
-                        console.log("Saved user:", userData);
+                        //console.log("Saved user:", userData);
                         await fetchUsers();
-                        setToastMessage('User added successfully');
+                        setToastMessage(isEditing ? 'User updated successfully' : 'User added successfully');
                         setShowToast(true);
+                        setIsEditing(false);
+                        setEditingUser(null);
                     }}
+                    isEditing={isEditing}
+                    editingUser={editingUser}
                 />
             </IonContent>
         </IonPage>

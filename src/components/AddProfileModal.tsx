@@ -518,7 +518,7 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
     const fieldNameMapping: Record<string, string> = {
       firstName: "firstName", 
       lastName: "lastName",
-      // Partner field mappings - remove 'p' prefix for database
+      
       pMarital_status: "marital_status",
       pReligion: "religion",
       pLiving_with: "living_with",
@@ -537,14 +537,14 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
       pZipcode: "zipcode"
     };
 
-    // Partner data fields - check for 'p' prefix or specific partner-only fields
+    // Partner data fields 
     if (field.startsWith('p') || field === "contact_num") {
       setPartnersData((prevData: any) => ({
         ...prevData,
         [fieldNameMapping[field] || field]: field === "pAge" ? Number(value) : value
       }));
     }
-    // Profile data fields (Teenage Mother) - everything else
+    // Profile data fields 
     else {
         setProfileData((prevData: any) => ({
           ...prevData,
@@ -894,7 +894,7 @@ const handleMunicipalityChange = (municipalityCode: string) => {
                       <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
                         <IonSelect
                                 className='ion-margin'
-                                label="Teenage Mother Occupation"
+                                label="Teenage Mother's Occupation"
                                 fill="outline"
                                 labelPlacement="floating"
                                 style={{ "--color": "#000" }}
@@ -913,7 +913,7 @@ const handleMunicipalityChange = (municipalityCode: string) => {
                       <IonItem lines="none" style={{ "--background": "#fff","--color": "#000", '--background-hover':'transparent', }}>
                         <IonSelect
                                 className='ion-margin'
-                                label="Teenage Mother Income"
+                                label="Teenage Mother's Monthly Income"
                                 fill="outline"
                                 labelPlacement="floating"
                                 style={{ "--color": "#000" }}
@@ -1831,7 +1831,7 @@ const handleMunicipalityChange = (municipalityCode: string) => {
                     "--background": "#fff",
                     }}
                 >
-                    Educational Background
+                  Partner's Educational Background
                 </IonItemDivider>
 
                 <IonRow>

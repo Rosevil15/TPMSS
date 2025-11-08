@@ -1,31 +1,6 @@
 import React, { useState } from 'react';
-import {
-  IonContent,
-  IonPage,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
-  IonButton,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonIcon,
-  IonToast,
-  IonSpinner,
-  IonProgressBar,
-  useIonViewWillEnter,
-  IonSkeletonText,
-} from '@ionic/react';
-import {
-  documentTextOutline,
-  peopleOutline,
-  medkitOutline,
-  schoolOutline,
-  briefcaseOutline,
-  downloadOutline,
-  statsChartOutline,
-} from 'ionicons/icons';
+import {IonContent,IonPage,IonCard,IonCardHeader,IonCardTitle,IonCardContent,IonButton,IonGrid,IonRow,IonCol,IonIcon,IonToast,IonSpinner,IonProgressBar,useIonViewWillEnter,IonSkeletonText,} from '@ionic/react';
+import {documentTextOutline,peopleOutline,medkitOutline,schoolOutline,briefcaseOutline,downloadOutline,statsChartOutline,} from 'ionicons/icons';
 import { fetchStatistics, generateCasesReport, generateEducationReport, generateHealthReport, generateLocationBreakdownReport, generateProfilesReport, generateSummaryReport, getLocationFilterText, loadAvailableLocations, LocationFilter } from '../../../services/reportServices';
 import { EarlyWarningCase, fetchEarlyWarnings, generateEarlyWarningReport, WarningStats } from '../../../services/earlyWarning';
 import EarlyWarningDashboard from '../../../components/EarlyWarningDashboard';
@@ -263,6 +238,7 @@ const Reports: React.FC = () => {
             </IonCardContent>
           </IonCard>
         ) : (
+          // Statistics Cards
             <IonGrid style={{ padding: 0 }}>
               <IonRow>
                 <IonCol size="12" sizeMd="6" sizeLg="3">
@@ -281,7 +257,7 @@ const Reports: React.FC = () => {
                 </IonCol>
 
                 <IonCol size="12" sizeMd="6" sizeLg="3">
-                  <IonCard style={{ background: '#e74c3c', color: 'white', margin: '8px 0', minHeight: '140px' }}>
+                  <IonCard style={{ background: '#2980b9', color: 'white', margin: '8px 0', minHeight: '140px' }}>
                     <IonCardHeader>
                       <IonCardTitle style={{ fontSize: '16px', display: 'flex', alignItems: 'center' }}>
                         <IonIcon icon={medkitOutline} style={{ fontSize: '24px', marginRight: '8px' }} />
@@ -296,7 +272,7 @@ const Reports: React.FC = () => {
                 </IonCol>
 
                 <IonCol size="12" sizeMd="6" sizeLg="3">
-                  <IonCard style={{ background: '#2ecc71', color: 'white', margin: '8px 0', minHeight: '140px' }}>
+                  <IonCard style={{ background: '#5dade2', color: 'white', margin: '8px 0', minHeight: '140px' }}>
                     <IonCardHeader>
                       <IonCardTitle style={{ fontSize: '16px', display: 'flex', alignItems: 'center' }}>
                         <IonIcon icon={schoolOutline} style={{ fontSize: '24px', marginRight: '8px' }} />
@@ -311,7 +287,7 @@ const Reports: React.FC = () => {
                 </IonCol>
 
                 <IonCol size="12" sizeMd="6" sizeLg="3">
-                  <IonCard style={{ background: '#f39c12', color: 'white', margin: '8px 0', minHeight: '140px' }}>
+                  <IonCard style={{ background: '#498cb9ff', color: 'white', margin: '8px 0', minHeight: '140px' }}>
                     <IonCardHeader>
                       <IonCardTitle style={{ fontSize: '16px', display: 'flex', alignItems: 'center' }}>
                         <IonIcon icon={briefcaseOutline} style={{ fontSize: '24px', marginRight: '8px' }} />

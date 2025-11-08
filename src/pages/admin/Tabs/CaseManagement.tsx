@@ -18,6 +18,13 @@ interface Case {
     received_FS : string;
     firstName?: string;
     lastName?: string;
+    social_support_type: string;
+    social_sup_received_from: string;
+    social_sup_frequency: string;
+    received_PS: string;
+    partner_support_type: string;
+    partner_support_frequency: string;
+
 };
 
 interface CaseManagementProps {
@@ -60,6 +67,13 @@ const CaseManagement: React.FC<CaseManagementProps> = ({ searchQuery = '' }) => 
                     family_support_frequency,
                     received_GC,
                     received_FS,
+                    received_SS,
+                    social_support_type,
+                    social_sup_received_from,
+                    social_sup_frequency,
+                    received_PS,
+                    partner_support_type,
+                    partner_support_frequency,
                     profile:profileid (
                         firstName,
                         lastName
@@ -183,7 +197,7 @@ const CaseManagement: React.FC<CaseManagementProps> = ({ searchQuery = '' }) => 
                                         }}
                                     >
                                         <IonCol size="12" sizeMd="5">Name</IonCol>
-                                        <IonCol size="6" sizeMd="2" className="ion-hide-md-down" >Guidance Counseling</IonCol>
+                                        <IonCol size="6" sizeMd="2" className="ion-hide-md-down" >Guidance and Counseling</IonCol>
                                         <IonCol size="6" sizeMd="2" className="ion-hide-md-down">Family Support</IonCol>
                                         <IonCol size="12" sizeMd="3">Action</IonCol>
                                     </IonRow>
@@ -213,7 +227,7 @@ const CaseManagement: React.FC<CaseManagementProps> = ({ searchQuery = '' }) => 
                                                     </pre>
                                                     {/* Mobile-only info */}
                                                     <div className="ion-hide-md-up" style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                                        <div><strong>Guidance Counseling:</strong> {caseItem.received_GC || 'N/A'}</div><div><strong>Family Support:</strong> {caseItem.received_FS || 'N/A'}</div>
+                                                        <div><strong>Guidance and Counseling:</strong> {caseItem.received_GC || 'N/A'}</div><div><strong>Family Support:</strong> {caseItem.received_FS || 'N/A'}</div>
                                                     </div>
                                                 </IonCol>
                                                 

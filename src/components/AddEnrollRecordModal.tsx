@@ -1,12 +1,12 @@
-import { IonButton, IonCard, IonCardContent, IonCol, IonContent, IonHeader, IonInput, IonItem, IonLabel, IonList, IonModal, IonPage, IonRow, IonSelect, IonSelectOption, IonSpinner, IonText, IonTitle, IonToolbar } from '@ionic/react';
+import { IonButton, IonCard, IonCardContent, IonCol, IonContent, IonGrid, IonHeader, IonInput, IonItem, IonItemDivider, IonItemGroup, IonLabel, IonList, IonModal, IonPage, IonRow, IonSelect, IonSelectOption, IonSpinner, IonText, IonTitle, IonToolbar } from '@ionic/react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../utils/supabaseClients';
 import { search } from 'ionicons/icons';
 
 interface EducationRecordProps {
     isOpen: boolean;
-    onClose:() => void;
-    onSave: (record:any) => Promise<void>;
+    onClose: () => void;
+    onSave: (record: any) => Promise<void>;
     editingEducation?: any | null;
     isEditing?: boolean;
 }
@@ -54,6 +54,7 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
     const [form, setForm] = useState<formState>(emptyForm);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [filteredProfiles, setFilteredProfiles] = useState<ProfileOption[]>([]);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const isLoadingEditData = useRef(false);
     const previousTypeOfProgram = useRef<string>('');
 
@@ -61,7 +62,7 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
         'elementary': ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'],
         'junior high': ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'],
         'senior high': ['Grade 11', 'Grade 12'],
-        'college': ['1st Year', '2nd Year', '3rd Year', '4th Year',],
+        'college': ['1st Year', '2nd Year', '3rd Year', '4th Year'],
     };
 
     const getGradeLevelOptions = () => {
@@ -69,7 +70,7 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
         return gradeLevelOptions[programType] || [];
     };
 
-    useEffect(() =>{
+    useEffect(() => {
         if (!isOpen) {
             return;
         }
@@ -120,8 +121,6 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
 
             // IMPORTANT: Set the previous type BEFORE setting the form
             previousTypeOfProgram.current = editingEducation.typeOfProgram || '';
-            
-           
 
             isLoadingEditData.current = false;
             // Set form with editing data
@@ -136,7 +135,6 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
                 gradeLevel: editingEducation.gradeLevel || '',
             });
             
-            // Reset the flag after data is loaded with longer timeout
         } catch (err) {
             console.error('Error loading editing data:', err);
             setError('Failed to load education record data');
@@ -171,17 +169,17 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
     const loadProfiles = async () => {
         setLoading(true);
         try {
-            const {data,error} = await supabase
+            const { data, error } = await supabase
                 .from('profile')
                 .select('profileid,firstName,lastName')
-                .order('lastName',{ascending:true});
+                .order('lastName', { ascending: true });
 
-                if (error) {
-                    setError(error.message);
-                } else {
-                    setProfiles(data ?? []);
-                }
-                setLoading(false);
+            if (error) {
+                setError(error.message);
+            } else {
+                setProfiles(data ?? []);
+            }
+            setLoading(false);
         } catch (error) {
             if (error instanceof Error) {
                 setError(error.message);
@@ -195,13 +193,13 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
 
     const handleProfileSelect = async (profile: ProfileOption) => {
         setError(null);
-
         setForm((prevForm) => ({
             ...prevForm,
             profileid: profile.profileid,
             profileSearch: `${profile.lastName ?? ''}, ${profile.firstName ?? ''} (ID: ${profile.profileid})`,
         }));
         setShowSuggestions(false);
+        setFilteredProfiles([]);
     };
 
     const handleChange = <K extends keyof formState>(key: K, value: formState[K]) => {
@@ -233,39 +231,12 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
                     gradeLevel: form.gradeLevel || null,
                 };
 
-                console.log('Updating education record with payload:', payload);
-                console.log('Education ID:', editingEducation.educationid);
-
-                // First, verify the record exists
-                const { data: beforeData, error: beforeError } = await supabase
-                    .from('EducationAndTraining')
-                    .select('*')
-                    .eq('educationid', editingEducation.educationid)
-                    .single();
-
-                console.log('Before update:', { beforeData, beforeError });
-
-                // Perform the update
-                const { data, error, count, status, statusText } = await supabase
+                const { error } = await supabase
                     .from('EducationAndTraining')
                     .update(payload)
                     .eq('educationid', editingEducation.educationid);
 
-                console.log('Update response:', { data, error, count, status, statusText });
-
-                // Verify the update
-                const { data: afterData, error: afterError } = await supabase
-                    .from('EducationAndTraining')
-                    .select('*')
-                    .eq('educationid', editingEducation.educationid)
-                    .single();
-
-                console.log('After update:', { afterData, afterError });
-
-                if (error) {
-                    console.error('Update error:', error);
-                    throw error;
-                }
+                if (error) throw error;
 
                 await onSave({ ...payload, educationid: editingEducation.educationid });
                 setForm(emptyForm);
@@ -274,9 +245,9 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
                 const currentYear = new Date().getFullYear();
                 const yearPrefix = parseInt(currentYear.toString());
 
-                const {count, error: countError} = await supabase
+                const { count, error: countError } = await supabase
                     .from('EducationAndTraining')
-                    .select('*', {count: 'exact', head: true})
+                    .select('*', { count: 'exact', head: true })
                     .gte('educationid', yearPrefix * 10000)
                     .lt('educationid', (yearPrefix + 1) * 10000);
 
@@ -299,7 +270,7 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
                     gradeLevel: form.gradeLevel || null,
                 };
 
-                const {data, error} = await supabase
+                const { error } = await supabase
                     .from('EducationAndTraining')
                     .insert(payload);
 
@@ -322,7 +293,7 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
     );
 
     return (
-        <IonModal isOpen={isOpen} onDidDismiss={onClose}  style={{'--width':'100%','--height':'100%',}}>
+        <IonModal isOpen={isOpen} onDidDismiss={onClose} style={{ '--width': '100%', '--height': '100%' }}>
             <IonHeader>
                 <IonToolbar
                     style={{
@@ -330,17 +301,11 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
                         color: '#fff',
                     }}
                 >
-                    <IonTitle
-                        style={{
-                            fontWeight: 'bold',
-                        }}
-                    >
+                    <IonTitle style={{ fontWeight: 'bold' }}>
                         {isEditing ? 'Edit Education Record' : 'Add Education Record'}
                     </IonTitle>
-
-                    {/* Close button */}
                     <IonButton
-                        slot="end" 
+                        slot="end"
                         onClick={onClose}
                         style={{
                             '--background': '#fff',
@@ -355,193 +320,247 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
                 </IonToolbar>
             </IonHeader>
 
-            <IonContent style={{ '--background': '#ffffffff' }}>
-            {loading ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
-                        <IonSpinner />
-                    </div>
-                ) : (
-                    <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#fff" }}>
-                        <IonCardContent style={{"--background": "#fff",}}>
-                            <IonList style={{ "--background": "#fff",}}>
+            <IonContent className="ion-padding" style={{ '--background': '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+                <IonCard style={{ borderRadius: '15px', boxShadow: '0 0 10px #ccc', '--background': '#fff', width: isMobile ? '100%' : '90%', margin: 'auto' }}>
+                    <IonCardContent>
+                        <h2 style={{ color: 'black', fontWeight: 'bold', backgroundColor: '#fff', padding: '10px', fontSize: isMobile ? '1.3rem' : '2rem', textAlign: 'center' }}>
+                            {isEditing ? 'Edit Education & Training Record' : 'Education & Training Form'}
+                        </h2>
 
-                                {error && (
-                                <IonText color="danger" style={{ display: "block", marginBottom: "1rem" }}>
-                                    {error}
-                                </IonText>
-                                )}
+                        {/* PROFILE SELECTION */}
+                        <IonItemGroup>
+                            <IonItemDivider
+                                style={{
+                                    '--color': '#000',
+                                    fontWeight: 'bold',
+                                    '--background': '#fff',
+                                }}
+                            >
+                                Profile Selection
+                            </IonItemDivider>
 
-                                {/* Profile Selector */}
-                                <IonItem style={{ "--background": "#fff", "--color": "#000000", '--background-hover':'#fff', '--background-focused':'transparent','--background-activated':'#fff', position: 'relative' }}>
-                                    <IonLabel position="stacked" style={{ '--color': '#000000' }}>
-                                        Name <IonText color="danger">*</IonText>
-                                    </IonLabel>
-                                    <IonInput
-                                        placeholder="Search by name..."
-                                        value={form.profileSearch}
-                                        onIonInput={(event) => handleProfileSearch(event.detail.value ?? '')}
-                                        disabled={save || showEmptyProfilesMessage || prefillLoading}
-                                        style={{ '--color': '#000000' }}
-                                    />
-                                    {prefillLoading && (
-                                        <IonSpinner slot="end" name="dots" style={{ transform: 'translateY(6px)' }} />
+                            <IonRow>
+                                <IonCol>
+                                    <IonItem lines="none" style={{ '--background': '#fff', position: 'relative' }}>
+                                        <IonInput
+                                            className="ion-margin"
+                                            label="Search Profile"
+                                            labelPlacement="floating"
+                                            fill="outline"
+                                            placeholder="Type name to search..."
+                                            value={form.profileSearch}
+                                            onIonInput={(event) => handleProfileSearch(event.detail.value ?? '')}
+                                            disabled={save || showEmptyProfilesMessage || prefillLoading}
+                                            style={{ '--color': '#000' }}
+                                        />
+                                    </IonItem>
+
+                                    {/* Suggestions Dropdown */}
+                                    {showSuggestions && (
+                                        <div
+                                            style={{
+                                                position: 'relative',
+                                                zIndex: 1000,
+                                                backgroundColor: '#fff',
+                                                border: '1px solid #ccc',
+                                                borderRadius: '4px',
+                                                maxHeight: '200px',
+                                                overflowY: 'auto',
+                                                marginLeft: '16px',
+                                                marginRight: '16px',
+                                            }}
+                                        >
+                                            {filteredProfiles.map((profile) => (
+                                                <div
+                                                    key={profile.profileid}
+                                                    onClick={() => handleProfileSelect(profile)}
+                                                    style={{
+                                                        padding: '12px 16px',
+                                                        cursor: 'pointer',
+                                                        borderBottom: '1px solid #eee',
+                                                        color: '#000',
+                                                    }}
+                                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f5f5f5')}
+                                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#fff')}
+                                                >
+                                                    {profile.lastName ?? 'Unknown'}, {profile.firstName ?? 'Unknown'} (ID: {profile.profileid})
+                                                </div>
+                                            ))}
+                                        </div>
                                     )}
-                                </IonItem>
-
-                                {/* Suggestions Dropdown */}
-                                {showSuggestions && (
-                                    <div style={{
-                                        position: 'relative',
-                                        zIndex: 1000,
-                                        backgroundColor: '#fff',
-                                        border: '1px solid #ccc',
-                                        borderRadius: '2px',
-                                        maxHeight: '200px',
-                                        overflowY: 'auto',
-                                        marginTop: '-10px',
-                                    }}>
-                                        {filteredProfiles.map((profile) => (
-                                            <div
-                                                key={profile.profileid}
-                                                onClick={() => handleProfileSelect(profile)}
-                                                style={{
-                                                    padding: '12px 16px',
-                                                    cursor: 'pointer',
-                                                    borderBottom: '1px solid #eee',
-                                                    color: '#000'
-                                                }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}
-                                            >
-                                                {profile.lastName ?? 'Unknown'}, {profile.firstName ?? 'Unknown'} (ID: {profile.profileid})
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Type of Program */}
-                                <IonItem  style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
-                                    <IonLabel position="stacked" style={{ '--color': '#000000' }}>School / Program</IonLabel>
-                                    <IonSelect
-                                        className='ion-margin'
-                                        placeholder='Select'
-                                        value={form.typeOfProgram}
-                                        style={{"--color": "#000" }}
-                                        onIonChange={(e) => handleChange("typeOfProgram", e.detail.value)}
-                                        disabled={save}
-                                    >
-                                        <IonSelectOption value="Elementary">Elementary School</IonSelectOption>
-                                        <IonSelectOption value="Junior High">Junior High</IonSelectOption>
-                                        <IonSelectOption value="Senior High">Senior High</IonSelectOption>
-                                        <IonSelectOption value="College">College</IonSelectOption>
-                                        <IonSelectOption value="ALS Elementary">ALS Elementary</IonSelectOption>
-                                        <IonSelectOption value="ALS Secondary">ALS Secondary</IonSelectOption>
-                                        <IonSelectOption value="TESDA">TESDA</IonSelectOption>
-                                    </IonSelect>
-                                </IonItem>
-
-                                {/* School Grade*/}
-                                <IonItem  style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent', }}>
-                                    <IonLabel position="stacked" style={{ '--color': '#000000' }}>Grade Level</IonLabel>
-                                    <IonSelect
-                                        className='ion-margin'
-                                        placeholder='Select Grade Level'
-                                        value={form.gradeLevel}
-                                        style={{"--color": "#000" }}
-                                        onIonChange={(e) => handleChange("gradeLevel", e.detail.value)}
-                                        disabled={save || !form.typeOfProgram || getGradeLevelOptions().length === 0}
-                                    >
-                                        {getGradeLevelOptions().map((level) => (
-                                            <IonSelectOption key={level} value={level}>
-                                                {level}
-                                            </IonSelectOption>
-                                        ))}
-                                    </IonSelect>
-                                </IonItem>
-
-                                {/* Program Course */}
-                                <IonItem style={{ "--background": "#fff", "--color": "#000000" }}>
-                                    <IonLabel position="stacked" style={{ '--color': '#000000' }}>Program or Course</IonLabel>
-                                    <IonInput
-                                        type="text"
-                                        value={form.programCourse}
-                                        onIonChange={(event) => handleChange("programCourse", event.detail.value ?? '')}
-                                        style={{ '--color': '#000000' }}
-                                    />
-                                </IonItem>
-
-                                {/* Status */}
-                                <IonItem style={{ "--background": "#fff", "--color": "#000", '--background-hover':'transparent' }}>
-                                    <IonLabel position="stacked" style={{ '--color': '#000000' }}>Status</IonLabel>
-                                    <IonSelect
-                                        className='ion-margin'
-                                        placeholder='Select Status'
-                                        value={form.status}
-                                        style={{ "--color": "#000" }}
-                                        onIonChange={(e) => handleChange("status", e.detail.value)}
-                                        disabled={save}
-                                    >
-                                        <IonSelectOption value="Enrolled">Enrolled</IonSelectOption>
-                                        <IonSelectOption value="Re-enrolled">Re-enrolled</IonSelectOption>
-                                        <IonSelectOption value="Dropout">Dropout</IonSelectOption>
-                                    </IonSelect>
-                                </IonItem>
-
-                                {/* Other Fields */}
-                                {[
-                                { label: "Name of Institution / Training Center", key: "institutionOrCenter", type: "text" as const },
-                                { label: "Date Enrolled / Dropped", key: "enroll_dropout_Date", type: "date" as const },
-                                ].map((item) => (
-                                <IonItem key={item.key} style={{ "--background": "#fff", "--color": "#000000" }}>
-                                    <IonLabel position="stacked" style={{ '--color': '#000000' }}>{item.label}</IonLabel>
-                                    <IonInput
-                                    type={item.type ?? "text"}
-                                    value={(form as any)[item.key]}
-                                    onIonChange={(event) => handleChange(item.key as keyof formState, event.detail.value ?? '')}
-                                    style={{ '--color': '#000000' }}
-                                    />
-                                </IonItem>
-                                ))}
-
-                            </IonList>
-
-                            {showEmptyProfilesMessage && (
-                                <IonText color="medium" style={{ display: 'block', marginTop: '1rem' }}>
-                                No profiles found. Choose a profile first.
-                                </IonText>
-                            )}
-
-                            <IonRow className="ion-justify-content-center ion-margin-top" style={{ '--background': 'transparent' }}>
-                                <IonCol size="auto">
-                                <IonButton
-                                    expand="block"
-                                    onClick={handleSave}
-                                    style={{ '--background': '#002d54', color: '#fff' }}
-                                    disabled={save || loading || showEmptyProfilesMessage || prefillLoading}
-                                >
-                                    {save ? <IonSpinner name="lines-small" /> : (isEditing ? 'Update' : 'Save')}
-                                </IonButton>
-                                </IonCol>
-
-                                <IonCol size="auto">
-                                    <IonButton color="medium" fill="outline" onClick={onClose} disabled={loading}>
-                                        Cancel
-                                    </IonButton>
                                 </IonCol>
                             </IonRow>
+                        </IonItemGroup>
 
-                            {error && (
+                        {/* EDUCATION INFORMATION */}
+                        <IonItemGroup>
+                            <IonItemDivider
+                                style={{
+                                    '--color': '#000',
+                                    fontWeight: 'bold',
+                                    '--background': '#fff',
+                                    marginTop: '10px',
+                                }}
+                            >
+                                Education & Training Information
+                            </IonItemDivider>
+
+                            <IonGrid>
                                 <IonRow>
+                                    <IonCol size="12" size-md="6">
+                                        <IonItem lines="none" style={{ '--background': '#fff' }}>
+                                            <IonSelect
+                                                className="ion-margin"
+                                                label="School / Program"
+                                                labelPlacement="floating"
+                                                fill="outline"
+                                                placeholder="Select program type"
+                                                value={form.typeOfProgram}
+                                                onIonChange={(e) => handleChange('typeOfProgram', e.detail.value)}
+                                                disabled={save}
+                                                style={{ '--color': '#000' }}
+                                            >
+                                                <IonSelectOption value="Elementary">Elementary School</IonSelectOption>
+                                                <IonSelectOption value="Junior High">Junior High</IonSelectOption>
+                                                <IonSelectOption value="Senior High">Senior High</IonSelectOption>
+                                                <IonSelectOption value="College">College</IonSelectOption>
+                                                <IonSelectOption value="ALS Elementary">ALS Elementary</IonSelectOption>
+                                                <IonSelectOption value="ALS Secondary">ALS Secondary</IonSelectOption>
+                                                <IonSelectOption value="TESDA">TESDA</IonSelectOption>
+                                            </IonSelect>
+                                        </IonItem>
+                                    </IonCol>
+
+                                    <IonCol size="12" size-md="6">
+                                        <IonItem lines="none" style={{ '--background': '#fff' }}>
+                                            <IonSelect
+                                                className="ion-margin"
+                                                label="Select Grade Level"
+                                                labelPlacement="floating"
+                                                fill="outline"
+                                                value={form.gradeLevel}
+                                                onIonChange={(e) => handleChange('gradeLevel', e.detail.value)}
+                                                disabled={save || !form.typeOfProgram || getGradeLevelOptions().length === 0}
+                                                style={{ '--color': '#000' }}
+                                            >
+                                                {getGradeLevelOptions().map((level) => (
+                                                    <IonSelectOption key={level} value={level}>
+                                                        {level}
+                                                    </IonSelectOption>
+                                                ))}
+                                            </IonSelect>
+                                        </IonItem>
+                                    </IonCol>
+                                </IonRow>
+
+                                <IonRow>
+                                    <IonCol size="12" size-md="6">
+                                        <IonItem lines="none" style={{ '--background': '#fff' }}>
+                                            <IonInput
+                                                className="ion-margin"
+                                                label="Program or Course"
+                                                labelPlacement="floating"
+                                                fill="outline"
+                                                placeholder="Enter program or course"
+                                                value={form.programCourse}
+                                                onIonInput={(event) => handleChange('programCourse', event.detail.value ?? '')}
+                                                disabled={save}
+                                                style={{ '--color': '#000' }}
+                                            />
+                                        </IonItem>
+                                    </IonCol>
+
+                                    <IonCol size="12" size-md="6">
+                                        <IonItem lines="none" style={{ '--background': '#fff' }}>
+                                            <IonSelect
+                                                className="ion-margin"
+                                                label="Status"
+                                                labelPlacement="floating"
+                                                fill="outline"
+                                                placeholder="Select status"
+                                                value={form.status}
+                                                onIonChange={(e) => handleChange('status', e.detail.value)}
+                                                disabled={save}
+                                                style={{ '--color': '#000' }}
+                                            >
+                                                <IonSelectOption value="Enrolled">Enrolled</IonSelectOption>
+                                                <IonSelectOption value="Re-enrolled">Re-enrolled</IonSelectOption>
+                                                <IonSelectOption value="Dropout">Dropout</IonSelectOption>
+                                            </IonSelect>
+                                        </IonItem>
+                                    </IonCol>
+                                </IonRow>
+
+                                <IonRow>
+                                    <IonCol size="12" size-md="6">
+                                        <IonItem lines="none" style={{ '--background': '#fff' }}>
+                                            <IonInput
+                                                className="ion-margin"
+                                                label="Name of Institution / Training Center"
+                                                labelPlacement="floating"
+                                                fill="outline"
+                                                placeholder="Enter institution name"
+                                                value={form.institutionOrCenter}
+                                                onIonInput={(event) => handleChange('institutionOrCenter', event.detail.value ?? '')}
+                                                disabled={save}
+                                                style={{ '--color': '#000' }}
+                                            />
+                                        </IonItem>
+                                    </IonCol>
+
+                                    <IonCol size="12" size-md="6">
+                                        <IonItem lines="none" style={{ '--background': '#fff' }}>
+                                            <IonInput
+                                                className="ion-margin"
+                                                label="Date Enrolled / Dropped"
+                                                labelPlacement="floating"
+                                                fill="outline"
+                                                type="date"
+                                                value={form.enroll_dropout_Date}
+                                                onIonInput={(event) => handleChange('enroll_dropout_Date', event.detail.value ?? '')}
+                                                disabled={save}
+                                                style={{ '--color': '#000' }}
+                                            />
+                                        </IonItem>
+                                    </IonCol>
+                                </IonRow>
+                            </IonGrid>
+                        </IonItemGroup>
+
+                        {/* BUTTONS */}
+                        <IonRow className="ion-justify-content-center ion-margin-top">
+                            <IonCol size="auto">
+                                <IonButton
+                                    color="primary"
+                                    onClick={handleSave}
+                                    disabled={save || loading || showEmptyProfilesMessage || prefillLoading}
+                                >
+                                    {save ? 'Saving...' : (isEditing ? 'Update' : 'Save')}
+                                </IonButton>
+                            </IonCol>
+                            <IonCol size="auto">
+                                <IonButton
+                                    color="medium"
+                                    fill="outline"
+                                    onClick={onClose}
+                                    disabled={save}
+                                >
+                                    Cancel
+                                </IonButton>
+                            </IonCol>
+                        </IonRow>
+
+                        {error && (
+                            <IonRow>
                                 <IonCol>
                                     <div style={{ color: 'red', textAlign: 'center', marginTop: '10px' }}>
-                                    {error}
+                                        {error}
                                     </div>
                                 </IonCol>
-                                </IonRow>
-                            )}
-                        </IonCardContent>
-                    </IonCard>
-            )}
+                            </IonRow>
+                        )}
+                    </IonCardContent>
+                </IonCard>
             </IonContent>
         </IonModal>
     );

@@ -1,17 +1,27 @@
-import { IonButton, IonCard, IonCardContent, IonCol, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonPage, IonRow, IonSelect, IonSelectOption, IonText, IonTitle, IonToolbar } from '@ionic/react';
-import React, { useState } from 'react';
+import { IonButton, IonCard, IonCardContent, IonCol, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonPage, IonRow, IonSelect, IonSelectOption, IonSpinner, IonText, IonTitle, IonToolbar } from '@ionic/react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../utils/supabaseClients';
 import * as bcrypt from 'bcryptjs'
 import { informationCircleOutline } from 'ionicons/icons';
+
 interface AddUserModalProps {
     isOpen: boolean;
-    onClose:() => void;
-    onSave: (users:any) => Promise<void>;
+    onClose: () => void;
+    onSave: (users: any) => Promise<void>;
+    editingUser?: any | null;
+    isEditing?: boolean;
 }
-const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSave }) => {
+
+const AddUserModal: React.FC<AddUserModalProps> = ({ 
+    isOpen, 
+    onClose, 
+    onSave, 
+    editingUser = null, 
+    isEditing = false 
+}) => {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const[UserData,setUserData] = useState<any>({
+    const [UserData, setUserData] = useState<any>({
         username: '',
         userfirstName: '',
         userlastName: '',
@@ -20,99 +30,178 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSave }) 
         password: ''
     });
 
+    useEffect(() => {
+        if (isOpen) {
+            if (isEditing && editingUser) {
+                // Load editing data
+                setUserData({
+                    username: editingUser.username || '',
+                    userfirstName: editingUser.userfirstName || '',
+                    userlastName: editingUser.userlastName || '',
+                    email: editingUser.email || '',
+                    role: editingUser.role || '',
+                    password: '' // Don't pre-fill password for security
+                });
+            } else {
+                // Reset form for new user
+                setUserData({
+                    username: '',
+                    userfirstName: '',
+                    userlastName: '',
+                    email: '',
+                    role: '',
+                    password: ''
+                });
+            }
+            setError(null);
+        }
+    }, [isOpen, isEditing, editingUser]);
+
     const handleChange = (key: string, value: any) => {
-        setUserData({...UserData, [key]: value});
+        setUserData({ ...UserData, [key]: value });
     };
 
-    const handleSave =async () => {
+    const handleSave = async () => {
         setLoading(true);
         setError(null);
 
         try {
-
+            // Validation
             if (!UserData.username || !UserData.userfirstName || !UserData.userlastName || !UserData.email || !UserData.role) {
                 setError('Please fill in all required fields');
                 setLoading(false);
                 return;
             }
 
-            const {data: authData, error: authError} = await supabase.auth.signUp({
-                email: UserData.email,
-                password: UserData.password,
-            });
-
-            if (authError) {
-                console.error('Supabase auth error:', authError.message);
-                setError(authError.message);
-                setLoading(false);
-                return;
-            }
-
-            const auth_id = authData.user?.id;
-            console.log("Created auth user with ID:", auth_id);
-
-            if (!auth_id) {
-                setError(' Please verify your email and try again.');
-                setLoading(false);
-                return;
-            }
-
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(UserData.password, salt);
-
-            const {data, error} = await supabase
-                .from('users')
-                .insert([{
-                    auth_id: auth_id,
+            if (isEditing && editingUser) {
+                // Update existing user
+                const payload: any = {
                     username: UserData.username,
-                    email: UserData.email,
                     userfirstName: UserData.userfirstName,
                     userlastName: UserData.userlastName,
+                    email: UserData.email,
                     role: UserData.role,
-                    password: hashedPassword,
-                    privacy_agreement: false,
-                    privacy_agreed_at: null,
-                    created_by_admin: true
-                }])
-                .select();
+                };
+
+                // Only update password if provided
+                if (UserData.password.trim()) {
+                    const salt = await bcrypt.genSalt(10);
+                    const hashedPassword = await bcrypt.hash(UserData.password, salt);
+                    payload.password = hashedPassword;
+                }
+
+                const { data, error } = await supabase
+                    .from('users')
+                    .update(payload)
+                    .eq('userid', editingUser.userid)
+                    .select();
+
+                if (error) {
+                    console.error('Supabase update error:', error.message);
+                    setError(error.message);
+                    setLoading(false);
+                    return;
+                }
+
+                if (data) {
+                    await onSave(data[0]);
+                    resetForm();
+                    onClose();
+                }
+            } else {
+                // Create new user
+                if (!UserData.password) {
+                    setError('Password is required for new users');
+                    setLoading(false);
+                    return;
+                }
+
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: UserData.email,
+                    password: UserData.password,
+                });
+
+                if (authError) {
+                    console.error('Supabase auth error:', authError.message);
+                    setError(authError.message);
+                    setLoading(false);
+                    return;
+                }
+
+                const auth_id = authData.user?.id;
+                console.log("Created auth user with ID:", auth_id);
+
+                if (!auth_id) {
+                    setError('Please verify your email and try again.');
+                    setLoading(false);
+                    return;
+                }
+
+                const salt = await bcrypt.genSalt(10);
+                const hashedPassword = await bcrypt.hash(UserData.password, salt);
+
+                const { data, error } = await supabase
+                    .from('users')
+                    .insert([{
+                        auth_id: auth_id,
+                        username: UserData.username,
+                        email: UserData.email,
+                        userfirstName: UserData.userfirstName,
+                        userlastName: UserData.userlastName,
+                        role: UserData.role,
+                        password: hashedPassword,
+                        privacy_agreement: false,
+                        privacy_agreed_at: null,
+                        created_by_admin: true
+                    }])
+                    .select();
 
                 if (error) {
                     console.error('Supabase insert error:', error.message);
                     setError(error.message);
+                    setLoading(false);
+                    return;
                 }
+
                 if (data) {
-                   //console.log("Role being inserted:", UserData.role);
-                    //console.log("Inserted user:", data);//debugger
                     await onSave(data[0]);
-                    
-                    setUserData({
-                        username: '',
-                        userfirstName: '',
-                        userlastName: '',
-                        email: '',
-                        role: '',
-                        password: ''
-                    });
+                    resetForm();
                     onClose();
                 }
+            }
         } catch (error: any) {
             setError('An unexpected error occurred: ' + error.message);
+            setLoading(false);
         }
     };
+
+    const resetForm = () => {
+        setUserData({
+            username: '',
+            userfirstName: '',
+            userlastName: '',
+            email: '',
+            role: '',
+            password: ''
+        });
+    };
+
     return (
-        <IonModal isOpen={isOpen} onDidDismiss={onClose} style={{'--width':'100%','--height':'100%',}}>
+        <IonModal isOpen={isOpen} onDidDismiss={onClose} style={{ '--width': '100%', '--height': '100%' }}>
             <IonHeader>
-                <IonToolbar 
+                <IonToolbar
                     style={{
                         '--background': '#002d54',
                         color: '#ffffff',
                     }}
                 >
-                    <IonTitle>Add New User</IonTitle>
+                    <IonTitle style={{ fontWeight: 'bold' }}>
+                        {isEditing ? 'Edit User' : 'Add New User'}
+                    </IonTitle>
 
                     {/* Close button */}
                     <IonButton
-                        slot="end" 
+                        slot="end"
                         onClick={onClose}
                         style={{
                             '--background': '#fff',
@@ -123,106 +212,165 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onSave }) 
                         }}
                     >
                         Close
-                        </IonButton>
+                    </IonButton>
                 </IonToolbar>
             </IonHeader>
 
-                <IonContent className="ion-padding" style={{ "--background": "#fff" }}>
-                        <IonCard style={{ 
-                            borderRadius: "15px", 
-                            boxShadow: "0 0 10px #ccc", 
-                            "--background": "#e3f2fd",
-                            marginBottom: "20px",
-                            border: "2px solid #2196f3"
-                        }}>
-                            <IonCardContent>
-                                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                                    <IonIcon 
-                                        icon={informationCircleOutline} 
-                                        style={{ fontSize: '24px', color: '#1976d2', marginRight: '10px' }}
-                                    />
-                                    <IonText style={{ fontWeight: 'bold', color: '#1976d2', fontSize: '1.1rem' }}>
-                                        Privacy Agreement Notice
-                                    </IonText>
-                                </div>
-                                <IonText style={{ color: '#333', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                                    <p style={{ margin: '0' }}>
-                                        <strong>Important:</strong> Users created by administrators will be required to 
-                                        agree to the Data Privacy Act (RA 10173) on their first login before they can 
-                                        access the system. This ensures compliance with privacy regulations.
-                                    </p>
+            <IonContent className="ion-padding" style={{ "--background": "#fff" }}>
+                {!isEditing && (
+                    <IonCard style={{
+                        borderRadius: "15px",
+                        boxShadow: "0 0 10px #ccc",
+                        "--background": "#e3f2fd",
+                        marginBottom: "20px",
+                        border: "2px solid #2196f3"
+                    }}>
+                        <IonCardContent>
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+                                <IonIcon
+                                    icon={informationCircleOutline}
+                                    style={{ fontSize: '24px', color: '#1976d2', marginRight: '10px' }}
+                                />
+                                <IonText style={{ fontWeight: 'bold', color: '#1976d2', fontSize: '1.1rem' }}>
+                                    Privacy Agreement Notice
                                 </IonText>
-                            </IonCardContent>
-                        </IonCard>
+                            </div>
+                            <IonText style={{ color: '#333', fontSize: '0.9rem', lineHeight: '1.4' }}>
+                                <p style={{ margin: '0' }}>
+                                    <strong>Important:</strong> Users created by administrators will be required to
+                                    agree to the Data Privacy Act (RA 10173) on their first login before they can
+                                    access the system. This ensures compliance with privacy regulations.
+                                </p>
+                            </IonText>
+                        </IonCardContent>
+                    </IonCard>
+                )}
 
-                        <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#ffffff" }}>
-                            <IonCardContent>
-                                <IonItem style={{ "--background": "#fff" }}>
-                                    <IonLabel position="stacked" style={{'--color' : '#000000'}}>First Name<IonText color="danger"> *</IonText></IonLabel>
-                                    <IonInput 
-                                        value={UserData.userfirstName}
-                                        onIonChange={(e) => handleChange("userfirstName", e.detail.value!)}
-                                        style={{'--color' : '#000000'}}
-                                        />
-                                </IonItem>
-                                <IonItem style={{ "--background": "#fff" }}>
-                                    <IonLabel position="stacked" style={{'--color' : '#000000'}}>Last Name<IonText color="danger"> *</IonText></IonLabel>
-                                    <IonInput 
-                                        value={UserData.userlastName} 
-                                        onIonChange={(e) => handleChange("userlastName", e.detail.value!)}
-                                        style={{'--color' : '#000000'}}
-                                        />
-                                </IonItem>
-                                <IonItem style={{ "--background": "#fff" }}>
-                                 <IonLabel position="stacked" style={{'--color' : '#000000'}}>User Name<IonText color="danger"> *</IonText></IonLabel>
-                                    <IonInput 
-                                        value={UserData.username} 
-                                        onIonChange={(e) => handleChange("username", e.detail.value!)} 
-                                        style={{'--color' : '#000000'}}
-                                        />
-                                </IonItem>
-                                <IonItem style={{ "--background": "#fff" }}>
-                                    <IonLabel position="stacked" style={{'--color' : '#000000'}}>Email<IonText color="danger"> *</IonText></IonLabel>
-                                    <IonInput type="email" value={UserData.email} onIonChange={(e) => handleChange("email", e.detail.value!)} style={{'--color' : '#000000'}} />
-                                </IonItem>
-                                <IonItem style={{ "--background": "#fff" }}>
-                                    <IonLabel position="stacked" style={{'--color' : '#000000'}}>Password<IonText color="danger"> *</IonText></IonLabel>
-                                    <IonInput type="password" value={UserData.password} onIonChange={(e) => handleChange("password", e.detail.value!)} style={{'--color' : '#000000'}} />
-                                </IonItem>
-                                <IonItem style={{'--background' : '#fff', '--color':'#000000', '--background-hover':'transparent',}}>
-                                    <IonLabel position="stacked" style={{'--color' : '#000000'}}>Role<IonText color="danger"> *</IonText></IonLabel>
-                                    <IonSelect value={UserData.role} onIonChange={(e) => handleChange("role", e.detail.value!)} style={{'--color' : '#000000'}}>
-                                        <IonSelectOption value="admin">Admin</IonSelectOption>
-                                        <IonSelectOption value="healthworker">Health Worker</IonSelectOption>
-                                        <IonSelectOption value="socialworker">Social Worker</IonSelectOption>
-                                        <IonSelectOption value="school">School Worker</IonSelectOption>
-                                        <IonSelectOption value="user">User</IonSelectOption>
-                                    </IonSelect>
-                            </IonItem>
+                <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#ffffff" }}>
+                    <IonCardContent>
+                        <h2 style={{ 
+                            color: 'black', 
+                            fontWeight: 'bold', 
+                            backgroundColor: '#fff', 
+                            padding: '10px', 
+                            fontSize: '1.5rem', 
+                            textAlign: 'center',
+                            marginBottom: '20px'
+                        }}>
+                            {isEditing ? 'Edit User Information' : 'User Information Form'}
+                        </h2>
 
-                                <IonRow className="ion-justify-content-center ion-margin-top">
-                                    <IonCol size="auto">
-                                    <IonButton 
-                                        onClick = {handleSave}
-                                        disabled = {loading}
-                                        style={{
-                                            '--background': '#002d54',
-                                            color: 'white',
-                                        }}
-                                    >
-                                        {loading ? 'Saving...' : 'Save'}
-                                    </IonButton>
-                                    </IonCol>
-                                    <IonCol size="auto">
-                                        <IonButton color="medium" fill="outline" onClick={onClose} disabled={loading}>
-                                            Cancel
-                                        </IonButton>
-                                    </IonCol>
-                                </IonRow>
-                            </IonCardContent>
-                        </IonCard>
-                </IonContent>
-            
+                        <IonItem style={{ "--background": "#fff" }}>
+                            <IonLabel position="stacked" style={{ '--color': '#000000' }}>
+                                First Name<IonText color="danger"> *</IonText>
+                            </IonLabel>
+                            <IonInput
+                                value={UserData.userfirstName}
+                                onIonChange={(e) => handleChange("userfirstName", e.detail.value!)}
+                                style={{ '--color': '#000000' }}
+                            />
+                        </IonItem>
+
+                        <IonItem style={{ "--background": "#fff" }}>
+                            <IonLabel position="stacked" style={{ '--color': '#000000' }}>
+                                Last Name<IonText color="danger"> *</IonText>
+                            </IonLabel>
+                            <IonInput
+                                value={UserData.userlastName}
+                                onIonChange={(e) => handleChange("userlastName", e.detail.value!)}
+                                style={{ '--color': '#000000' }}
+                            />
+                        </IonItem>
+
+                        <IonItem style={{ "--background": "#fff" }}>
+                            <IonLabel position="stacked" style={{ '--color': '#000000' }}>
+                                User Name<IonText color="danger"> *</IonText>
+                            </IonLabel>
+                            <IonInput
+                                value={UserData.username}
+                                onIonChange={(e) => handleChange("username", e.detail.value!)}
+                                style={{ '--color': '#000000' }}
+                            />
+                        </IonItem>
+
+                        <IonItem style={{ "--background": "#fff" }}>
+                            <IonLabel position="stacked" style={{ '--color': '#000000' }}>
+                                Email<IonText color="danger"> *</IonText>
+                            </IonLabel>
+                            <IonInput
+                                type="email"
+                                value={UserData.email}
+                                onIonChange={(e) => handleChange("email", e.detail.value!)}
+                                style={{ '--color': '#000000' }}
+                            />
+                        </IonItem>
+
+                        <IonItem style={{ "--background": "#fff" }}>
+                            <IonLabel position="stacked" style={{ '--color': '#000000' }}>
+                                Password{isEditing ? ' (leave blank to keep current)' : <IonText color="danger"> *</IonText>}
+                            </IonLabel>
+                            <IonInput
+                                type="password"
+                                value={UserData.password}
+                                onIonChange={(e) => handleChange("password", e.detail.value!)}
+                                style={{ '--color': '#000000' }}
+                                placeholder={isEditing ? 'Enter new password to change' : ''}
+                            />
+                        </IonItem>
+
+                        <IonItem style={{ '--background': '#fff', '--color': '#000000', '--background-hover': 'transparent' }}>
+                            <IonLabel position="stacked" style={{ '--color': '#000000' }}>
+                                Role<IonText color="danger"> *</IonText>
+                            </IonLabel>
+                            <IonSelect
+                                value={UserData.role}
+                                onIonChange={(e) => handleChange("role", e.detail.value!)}
+                                style={{ '--color': '#000000' }}
+                            >
+                                <IonSelectOption value="admin">Admin</IonSelectOption>
+                                <IonSelectOption value="healthworker">Health Worker</IonSelectOption>
+                                <IonSelectOption value="socialworker">Social Worker</IonSelectOption>
+                                <IonSelectOption value="school">School Worker</IonSelectOption>
+                                <IonSelectOption value="user">User</IonSelectOption>
+                            </IonSelect>
+                        </IonItem>
+
+                        <IonRow className="ion-justify-content-center ion-margin-top">
+                            <IonCol size="auto">
+                                <IonButton
+                                    onClick={handleSave}
+                                    disabled={loading}
+                                    style={{
+                                        '--background': '#002d54',
+                                        color: 'white',
+                                    }}
+                                >
+                                    {loading ? (
+                                        <IonSpinner name="crescent" />
+                                    ) : (
+                                        isEditing ? 'Update' : 'Save'
+                                    )}
+                                </IonButton>
+                            </IonCol>
+                            <IonCol size="auto">
+                                <IonButton color="medium" fill="outline" onClick={onClose} disabled={loading}>
+                                    Cancel
+                                </IonButton>
+                            </IonCol>
+                        </IonRow>
+
+                        {error && (
+                            <IonRow>
+                                <IonCol>
+                                    <div style={{ color: 'red', textAlign: 'center', marginTop: '10px' }}>
+                                        {error}
+                                    </div>
+                                </IonCol>
+                            </IonRow>
+                        )}
+                    </IonCardContent>
+                </IonCard>
+            </IonContent>
         </IonModal>
     );
 };
