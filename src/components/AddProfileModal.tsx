@@ -527,10 +527,6 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
       console.error('Error saving profile:', err);
       setError(err.message || 'An error occurred while saving the profile');
       
-      if (err?.error_description) {
-        console.error('Supabase error details:', err.error_description);
-        setError(`${err.message}: ${err.error_description}`);
-      }
     } finally {
       setLoading(false);
       setIsValidating(false);

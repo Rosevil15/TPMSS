@@ -54,7 +54,7 @@ const AuthCallback: React.FC = () => {
         await supabase.auth.signOut();
         // Redirect to login after a delay to show the error
         setTimeout(() => {
-          router.push("/login", "root", "replace");
+          router.push("/", "root", "replace");
         }, 3000);
         return;
       }
@@ -78,7 +78,7 @@ const AuthCallback: React.FC = () => {
 
         if (insertError) {
           console.error("Insert error:", insertError.message);
-          router.push("/login", "root", "replace");
+          router.push("/", "root", "replace");
           return;
         }
       } else {
