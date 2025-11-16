@@ -30,6 +30,8 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
    const [isIndigenous, setIsIndigenous] = useState<string>(''); 
    const [isPartnerIndigenous, setIsPartnerIndigenous] = useState<string>('');
    const [isMultiplePartners, setIsMultiplePartners] = useState<string>('');
+   const [motherInfoComplete, setMotherInfoComplete] = useState(false);
+   const [fatherInfoComplete, setFatherInfoComplete] = useState(false);
 
    const [profileData, setProfileData] = useState<any>({
         firstName: '',  
@@ -341,197 +343,245 @@ const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClose, onSa
       setError(null);
    };
    
-  // Function to save profile data to Supabase
-  const handleSave = async () => {
-    try {
-      setIsValidating(true);
-      setError(null);
+  // Save mother info handler
+const handleSaveMotherInfo = async () => {
+  try {
+    setIsValidating(true);
+    setError(null);
 
-      const { isValid, firstErrorField } = validateAllFields();
+    // Validate only mother's required fields
+    const motherErrors: ValidationErrors = {};
+    let firstErrorField: string | null = null;
+
+    requiredFields.profile.forEach(field => {
+      const isValid = validateFields(field, profileData[field], 'profile');
       if (!isValid) {
-        setError('Please Fill up all required fields.');
-        
+        motherErrors[field] = true;
+        if (!firstErrorField) { firstErrorField = field; }
+      }
+    });
 
-        if (firstErrorField) {
-          setTimeout(() => {
-            scrollField(firstErrorField);
-          }, 100);
-        }
+    setValidationError(motherErrors);
+    
+    if (Object.keys(motherErrors).length > 0) {
+      setError('Please fill up all required fields for Teenage Mother Information.');
+      if (firstErrorField) {
+        setTimeout(() => scrollField(firstErrorField!), 100);
+      }
       return;
-      }
+    }
 
-      setLoading(true);
-      // Get user ID from current session
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('No user logged in');
-      }
-      
-      let profileId: number;
-      
-      if (isEditing && editingProfile) {
-          // Use existing profile ID for editing
-          profileId = editingProfile.profileid;
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No user logged in');
+
+    let profileId: number;
+
+    if (isEditing && editingProfile) {
+      profileId = editingProfile.profileid;
+    } else {
+      const currentYear = new Date().getFullYear();
+      const yearPrefix = parseInt(currentYear.toString());
+
+      const { data: latestProfile, error: fetchError } = await supabase
+        .from('profile')
+        .select('profileid')
+        .gte('profileid', yearPrefix * 10000)
+        .lt('profileid', (yearPrefix + 1) * 10000)
+        .order('profileid', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      if (latestProfile && latestProfile.profileid) {
+        profileId = latestProfile.profileid + 1;
       } else {
-          // Generate new ID for creating
-          const currentYear = new Date().getFullYear();
-          const yearPrefix = parseInt(currentYear.toString());
-
-          const {data: latestProfile, error: fetchError} = await supabase
-            .from('profile')
-            .select('profileid')
-            .gte('profileid', yearPrefix * 10000)
-            .lt('profileid',(yearPrefix + 1) * 10000)
-            .order('profileid', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (fetchError) {
-            throw fetchError;
-          }
-
-          if (latestProfile && latestProfile.profileid) {
-            profileId = latestProfile.profileid + 1;
-          } else {
-            profileId = yearPrefix * 10000 + 1;
-          }
+        profileId = yearPrefix * 10000 + 1;
       }
+    }
 
-      const formatDateForDB = (dateString: string) => {
+    const formatDateForDB = (dateString: string) => {
       return dateString && dateString.trim() !== '' ? dateString : null;
     };
-    
 
-      const partnerid = profileId;
-      
-      // Prepare payloads
-      const profilePayload = {
-        profileid: profileId,
-        firstName: profileData.firstName || '',
-        lastName: profileData.lastName || '',
-        age: profileData.age || 0,
-        birthdate: formatDateForDB(profileData.birthdate),
-        contactnum: profileData.contactnum || '',
-        barangay: profileData.barangay || '',
-        municipality: profileData.municipality || '',
-        province: profileData.province || '',
-        region: profileData.region || '',
-        zipcode: profileData.zipcode || '',
-        marital_status: profileData.marital_status || '',
-        religion: profileData.religion || '',
-        living_with: profileData.living_with || '',
-        current_year_level: profileData.current_year_level || '',
-        highest_educational_attainment: profileData.highest_educational_attainment || '',
-        fathers_occupation: profileData.fathers_occupation || '',
-        mothers_occupation: profileData.mothers_occupation || '',
-        indigenous_ethnicity: profileData.indigenous_ethnicity || '',
-        teenage_income: profileData.teenage_income || '',
-        teenage_occupation: profileData.teenage_occupation || '',
-        mothers_income: profileData.mothers_income || '',
-        fathers_income: profileData.fathers_income || '',
-        type_of_school: profileData.type_of_school || '',
-        multiple_partner_num: profileData.multiple_partner_num || 0,
-      };
+    const profilePayload = {
+      profileid: profileId,
+      firstName: profileData.firstName || '',
+      lastName: profileData.lastName || '',
+      age: profileData.age || 0,
+      birthdate: formatDateForDB(profileData.birthdate),
+      contactnum: profileData.contactnum || '',
+      barangay: profileData.barangay || '',
+      municipality: profileData.municipality || '',
+      province: profileData.province || '',
+      region: profileData.region || '',
+      zipcode: profileData.zipcode || '',
+      marital_status: profileData.marital_status || '',
+      religion: profileData.religion || '',
+      living_with: profileData.living_with || '',
+      current_year_level: profileData.current_year_level || '',
+      highest_educational_attainment: profileData.highest_educational_attainment || '',
+      fathers_occupation: profileData.fathers_occupation || '',
+      mothers_occupation: profileData.mothers_occupation || '',
+      indigenous_ethnicity: profileData.indigenous_ethnicity || '',
+      teenage_income: profileData.teenage_income || '',
+      teenage_occupation: profileData.teenage_occupation || '',
+      mothers_income: profileData.mothers_income || '',
+      fathers_income: profileData.fathers_income || '',
+      type_of_school: profileData.type_of_school || '',
+      multiple_partner_num: profileData.multiple_partner_num || 0,
+    };
 
-      const partnersPayload = {
-        partnerid: partnerid,
-        profileid: profileId,
-        pFirstname: partnersData.pFirstname || '',
-        pLastname: partnersData.pLastname || '',
-        pAge: partnersData.pAge || 0,
-        pBirthdate: formatDateForDB(partnersData.pBirthdate),
-        pOccupation: partnersData.pOccupation || '',
-        pIncome: partnersData.pIncome || '',
-        contact_num: partnersData.contact_num || '',
-        region: partnersData.region || '',
-        province: partnersData.province || '',
-        municipality: partnersData.municipality || '',
-        barangay: partnersData.barangay || '',
-        zipcode: partnersData.zipcode || '',
-        marital_status: partnersData.marital_status || '',
-        living_with: partnersData.living_with || '',
-        current_year_level: partnersData.current_year_level || '',
-        highest_educational_attainment: partnersData.highest_educational_attainment || '',
-        religion: partnersData.religion || '',
-        fathers_occupation: partnersData.fathers_occupation || '',
-        mothers_occupation: partnersData.mothers_occupation || '',
-        fathers_income: partnersData.fathers_income || '',
-        mothers_income: partnersData.mothers_income || '',
-        indigenous_ethnicity: partnersData.indigenous_ethnicity || '',
-        type_of_school: partnersData.type_of_school || '',
-      };
-      
-      
-      if (isEditing) {
-            // Update existing records
-            const { error: profileError } = await supabase
-                .from('profile')
-                .update(profilePayload)
-                .eq('profileid', profileId);
-            
-            if (profileError) throw profileError;
-            
-            // Check if partner record exists
-            const { data: existingPartner } = await supabase
-                .from('partnersInfo')
-                .select('partnerid')
-                .eq('profileid', profileId)
-                .maybeSingle();
-            
-            if (existingPartner) {
-                // Update existing partner record
-                const { error: partnerError } = await supabase
-                    .from('partnersInfo')
-                    .update(partnersPayload)
-                    .eq('profileid', profileId);
-                
-                if (partnerError) throw partnerError;
-            } else {
-                // Insert new partner record
-                const { error: partnerError } = await supabase
-                    .from('partnersInfo')
-                    .insert(partnersPayload);
-                
-                if (partnerError) throw partnerError;
-            }
-            
-            
-            // Call onSave prop
-            await onSave({
-                ...profilePayload,
-                partner: partnersPayload,
-            });
-            
-            resetForm();
-            onClose();
-      } else {
-          // Save new profile using the service function
-          const result = await saveCompleteProfile(
-            profilePayload,
-            partnersPayload
-          );
-          
-          if (result.success) {
-            await onSave({
-              ...profilePayload,
-              partner: partnersPayload,
-            });
-            
-            resetForm();
-            onClose();
-          } else {
-            setError(result.message || 'An error occurred while saving the profile');
-          }
-      }
-    } catch (err: any) {
-      console.error('Error saving profile:', err);
-      setError(err.message || 'An error occurred while saving the profile');
-      
-    } finally {
-      setLoading(false);
-      setIsValidating(false);
+    if (isEditing) {
+      const { error: profileError } = await supabase
+        .from('profile')
+        .update(profilePayload)
+        .eq('profileid', profileId);
+      if (profileError) throw profileError;
+    } else {
+      const { error: profileError } = await supabase
+        .from('profile')
+        .insert(profilePayload);
+      if (profileError) throw profileError;
     }
-  };
+
+    setMotherInfoComplete(true);
+    setError('Teenage Mother Information saved successfully!');
+    setTimeout(() => setError(null), 3000);
+
+  } catch (err: any) {
+    console.error('Error saving mother info:', err);
+    setError(err.message || 'An error occurred while saving mother information');
+  } finally {
+    setLoading(false);
+    setIsValidating(false);
+  }
+};
+
+const handleSaveFatherInfo = async () => {
+  try {
+    setIsValidating(true);
+    setError(null);
+
+    if (!motherInfoComplete && !isEditing) {
+      setError('Please save Teenage Mother Information first.');
+      return;
+    }
+
+    // Validate only father's required fields
+    const fatherErrors: ValidationErrors = {};
+    let firstErrorField: string | null = null;
+
+    requiredFields.partner.forEach(field => {
+      const isValid = validateFields(field, partnersData[field], 'partner');
+      if (!isValid) {
+        fatherErrors[field] = true;
+        if (!firstErrorField) { firstErrorField = field; }
+      }
+    });
+
+    setValidationError(fatherErrors);
+    
+    if (Object.keys(fatherErrors).length > 0) {
+      setError('Please fill up all required fields for Teenage Father Information.');
+      if (firstErrorField) {
+        setTimeout(() => scrollField(firstErrorField!), 100);
+      }
+      return;
+    }
+
+    setLoading(true);
+
+    let profileId: number;
+    if (isEditing && editingProfile) {
+      profileId = editingProfile.profileid;
+    } else {
+      // Get the profile ID from the just-saved profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user logged in');
+
+      const { data: savedProfile, error: fetchError } = await supabase
+        .from('profile')
+        .select('profileid')
+        .eq('firstName', profileData.firstName)
+        .eq('lastName', profileData.lastName)
+        .eq('birthdate', profileData.birthdate)
+        .order('profileid', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchError || !savedProfile) {
+        throw new Error('Could not find saved profile. Please save Teenage Mother Information first.');
+      }
+
+      profileId = savedProfile.profileid;
+    }
+
+    const formatDateForDB = (dateString: string) => {
+      return dateString && dateString.trim() !== '' ? dateString : null;
+    };
+
+    const partnersPayload = {
+      partnerid: profileId,
+      profileid: profileId,
+      pFirstname: partnersData.pFirstname || '',
+      pLastname: partnersData.pLastname || '',
+      pAge: partnersData.pAge || 0,
+      pBirthdate: formatDateForDB(partnersData.pBirthdate),
+      pOccupation: partnersData.pOccupation || '',
+      pIncome: partnersData.pIncome || '',
+      contact_num: partnersData.contact_num || '',
+      region: partnersData.region || '',
+      province: partnersData.province || '',
+      municipality: partnersData.municipality || '',
+      barangay: partnersData.barangay || '',
+      zipcode: partnersData.zipcode || '',
+      marital_status: partnersData.marital_status || '',
+      living_with: partnersData.living_with || '',
+      current_year_level: partnersData.current_year_level || '',
+      highest_educational_attainment: partnersData.highest_educational_attainment || '',
+      religion: partnersData.religion || '',
+      fathers_occupation: partnersData.fathers_occupation || '',
+      mothers_occupation: partnersData.mothers_occupation || '',
+      fathers_income: partnersData.fathers_income || '',
+      mothers_income: partnersData.mothers_income || '',
+      indigenous_ethnicity: partnersData.indigenous_ethnicity || '',
+      type_of_school: partnersData.type_of_school || '',
+    };
+
+    const { data: existingPartner } = await supabase
+      .from('partnersInfo')
+      .select('partnerid')
+      .eq('profileid', profileId)
+      .maybeSingle();
+
+    if (existingPartner) {
+      const { error: partnerError } = await supabase
+        .from('partnersInfo')
+        .update(partnersPayload)
+        .eq('profileid', profileId);
+      if (partnerError) throw partnerError;
+    } else {
+      const { error: partnerError } = await supabase
+        .from('partnersInfo')
+        .insert(partnersPayload);
+      if (partnerError) throw partnerError;
+    }
+
+    setFatherInfoComplete(true);
+    await onSave({ profileid: profileId });
+    resetForm();
+    onClose();
+
+  } catch (err: any) {
+    console.error('Error saving father info:', err);
+    setError(err.message || 'An error occurred while saving father information');
+  } finally {
+    setLoading(false);
+    setIsValidating(false);
+  }
+};
 
   const handleChange = (field: string, value: string | number | boolean) => {
     // Map field names
@@ -808,11 +858,13 @@ const handleMunicipalityChange = (municipalityCode: string) => {
                 </IonToolbar>
             </IonHeader>
 
-            <IonContent className="ion-padding" style={{ "--background": "#fff" }}>
+            <IonContent ref={containerRef} className="ion-padding" style={{ "--background": "#fff" }}>
+              
+              {/* Teenage Mother Information Card */}
           <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#fff" }}>
             <IonCardContent>
               <h2 style={{ color: "black", fontWeight: "bold", backgroundColor: '#fff', padding: '10px', fontSize: '2rem', textAlign: 'center' }}>
-                Registration Form
+                Teenage Mother Information
               </h2>
 
             {/* Teenage Mother Basic INFORMATION */}
@@ -1450,9 +1502,53 @@ const handleMunicipalityChange = (municipalityCode: string) => {
                     </IonCol>
                   </IonRow>
               </IonGrid>
-             </IonItemGroup>
-            <br />
-            <br />
+            </IonItemGroup>
+
+            {/* Save Button for Mother Info */}
+            <IonRow className="ion-justify-content-center ion-margin-top">
+              <IonCol size="auto">
+                <IonButton 
+                  color="primary" 
+                  onClick={handleSaveMotherInfo}
+                  disabled={loading}
+                >
+                  {loading ? <IonSpinner name="lines-small" /> : (motherInfoComplete ? 'Update Mother Info' : 'Save Mother Info')}
+                </IonButton>
+              </IonCol>
+            </IonRow>
+
+            {motherInfoComplete && (
+              <IonRow>
+                <IonCol>
+                  <div style={{ color: 'green', textAlign: 'center', marginTop: '10px', fontWeight: 'bold' }}>
+                    ✓ Teenage Mother Information Saved Successfully
+                  </div>
+                </IonCol>
+              </IonRow>
+            )}
+            </IonCardContent>
+          </IonCard>
+
+            {/* Teenage Father Information Card */}
+          <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#fff" }}>
+            <IonCardContent>
+              <h2 style={{ color: "black", fontWeight: "bold", backgroundColor: '#fff', padding: '10px', fontSize: '2rem', textAlign: 'center' }}>
+                Teenage Father Information
+              </h2>
+
+              {!motherInfoComplete && !isEditing && (
+                <div style={{ 
+                  padding: '15px', 
+                  backgroundColor: '#fff3cd', 
+                  border: '1px solid #ffc107', 
+                  borderRadius: '8px', 
+                  marginBottom: '20px',
+                  textAlign: 'center',
+                  color: '#856404'
+                }}>
+                  <strong>Note:</strong> Please save Teenage Mother Information first before adding Teenage Father Information.
+                </div>
+              )}
              {/*TeenageFather INFORMATION */}
             <IonItemGroup>
               <IonItemDivider
@@ -2037,33 +2133,29 @@ const handleMunicipalityChange = (municipalityCode: string) => {
             </IonItemGroup>
 
             <IonRow className="ion-justify-content-center ion-margin-top">
-              <IonCol size="auto">
-                <IonButton 
-                  color="primary" 
-                  onClick={handleSave}
-                  disabled={loading}
-                >
-                  {loading ? <IonSpinner name="lines-small" /> : (isEditing ? 'Update' : 'Save')}
-                </IonButton>
-              </IonCol>
-              <IonCol size="auto">
-                <IonButton color="medium" fill="outline" onClick={onClose} disabled={loading}>
-                  Cancel
-                </IonButton>
-              </IonCol>
-            </IonRow>
-            
-            {error && (
-              <IonRow>
-                <IonCol>
-                  <div style={{ color: 'red', textAlign: 'center', marginTop: '10px' }}>
-                    {error}
-                  </div>
+                <IonCol size="auto">
+                  <IonButton 
+                    color="primary" 
+                    onClick={handleSaveFatherInfo}
+                    disabled={loading || (!motherInfoComplete && !isEditing)}
+                  >
+                    {loading ? <IonSpinner name="lines-small" /> : (isEditing ? 'Update & Close' : 'Save & Close')}
+                  </IonButton>
+                </IonCol>
+                <IonCol size="auto">
+                  <IonButton color="medium" fill="outline" onClick={onClose} disabled={loading}>
+                    Cancel
+                  </IonButton>
                 </IonCol>
               </IonRow>
+            </IonCardContent>
+          </IonCard>
+            
+            {error && (
+              <div style={{ color: error.includes('successfully') ? 'green' : 'red', textAlign: 'center', marginTop: '10px', fontWeight: 'bold' }}>
+                {error}
+              </div>
             )}
-          </IonCardContent>
-        </IonCard>
             </IonContent>
         </IonModal>
     );

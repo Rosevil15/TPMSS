@@ -405,7 +405,7 @@ const ViewProfileModal: React.FC<ViewProfileModalProps> = ({ isOpen, onClose, pr
                             <IonCard style={{ borderRadius: "15px", boxShadow: "0 0 10px #ccc", "--background": "#fff", marginBottom: '20px' }}>
                                 <IonCardContent>
                                     <h2 style={{ color: "black", fontWeight: "bold", backgroundColor: '#fff', padding: '10px', fontSize: '1.5rem', borderBottom: '2px solid #002d54', display: 'flex', alignItems: 'center' }}>
-                                        <IonIcon icon={heartOutline} style={{ marginRight: '10px' }} />
+                                        <IonIcon icon={personOutline} style={{ marginRight: '10px' }} />
                                         Teenage Father Information
                                     </h2>
 
