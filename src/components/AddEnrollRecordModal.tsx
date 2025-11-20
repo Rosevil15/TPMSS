@@ -245,19 +245,24 @@ const AddEnrollRecordModal: React.FC<EducationRecordProps> = ({
                 const currentYear = new Date().getFullYear();
                 const yearPrefix = parseInt(currentYear.toString());
 
-                const { count, error: countError } = await supabase
+                // Get the max educationid for the year
+                const { data: maxIdData, error: maxIdError } = await supabase
                     .from('EducationAndTraining')
-                    .select('*', { count: 'exact', head: true })
+                    .select('educationid')
                     .gte('educationid', yearPrefix * 10000)
-                    .lt('educationid', (yearPrefix + 1) * 10000);
+                    .lt('educationid', (yearPrefix + 1) * 10000)
+                    .order('educationid', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
 
-                if (countError) {
-                    setError(`Error generating Education ID: ${countError.message}`);
+                if (maxIdError) {
+                    setError(`Error generating Education ID: ${maxIdError.message}`);
                     setSave(false);
                     return;
                 }
-
-                const newEducationId = yearPrefix * 10000 + ((count ?? 0) + 1);
+                const newEducationId = maxIdData && maxIdData.educationid
+                ? maxIdData.educationid + 1
+                : yearPrefix * 10000 + 1;
 
                 const payload = {
                     educationid: newEducationId,
