@@ -104,6 +104,20 @@ Deploy to GitHub Pages:
 npm run deploy
 ```
 
+Deploy to Vercel (Recommended):
+```bash
+# See DEPLOY.md for quick start
+# Or docs/VERCEL_DEPLOYMENT.md for complete guide
+```
+
+Quick Vercel deployment:
+1. Push to GitHub
+2. Import to Vercel
+3. Add environment variables
+4. Deploy!
+
+See [DEPLOY.md](DEPLOY.md) for step-by-step instructions.
+
 ## Project Structure
 
 ```
