@@ -1,10 +1,23 @@
+/**
+ * Supabase client configuration
+ */
+
 import { createClient } from '@supabase/supabase-js';
+import { env, validateEnv } from '../config/env';
+import { logger } from './logger';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase credentials');
+// Validate environment variables on initialization
+try {
+  validateEnv();
+} catch (error) {
+  logger.error('Failed to initialize Supabase client', error);
+  throw error;
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(env.supabase.url, env.supabase.anonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+});

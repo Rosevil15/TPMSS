@@ -29,4 +29,26 @@ yarn-error.log*
 
 # Optional eslint cache
 .eslintcache
+
+# Environment variables
 .env
+.env*.local
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cypress
+cypress/videos
+cypress/screenshots

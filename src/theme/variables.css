@@ -1,2 +1,220 @@
-/* For information on how to create your own theme, please see:
-http://ionicframework.com/docs/theming/ */
+/* Ionic Variables and Theming. */
+/* For more info, please see: http://ionicframework.com/docs/theming/ */
+
+/** L.E.A.P Professional Theme **/
+:root {
+  /** Primary Brand Colors **/
+  --ion-color-primary: #002d54;
+  --ion-color-primary-rgb: 0, 45, 84;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #00284a;
+  --ion-color-primary-tint: #1a4265;
+
+  /** Secondary **/
+  --ion-color-secondary: #004080;
+  --ion-color-secondary-rgb: 0, 64, 128;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #003871;
+  --ion-color-secondary-tint: #1a538d;
+
+  /** Success **/
+  --ion-color-success: #28a745;
+  --ion-color-success-rgb: 40, 167, 69;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #23933d;
+  --ion-color-success-tint: #3eb058;
+
+  /** Warning **/
+  --ion-color-warning: #ffc107;
+  --ion-color-warning-rgb: 255, 193, 7;
+  --ion-color-warning-contrast: #000000;
+  --ion-color-warning-contrast-rgb: 0, 0, 0;
+  --ion-color-warning-shade: #e0a800;
+  --ion-color-warning-tint: #ffca22;
+
+  /** Danger **/
+  --ion-color-danger: #dc3545;
+  --ion-color-danger-rgb: 220, 53, 69;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #c22e3c;
+  --ion-color-danger-tint: #e04b58;
+
+  /** Light **/
+  --ion-color-light: #f8f9fa;
+  --ion-color-light-rgb: 248, 249, 250;
+  --ion-color-light-contrast: #000000;
+  --ion-color-light-contrast-rgb: 0, 0, 0;
+  --ion-color-light-shade: #dadcdd;
+  --ion-color-light-tint: #f9fafb;
+
+  /** Medium **/
+  --ion-color-medium: #6c757d;
+  --ion-color-medium-rgb: 108, 117, 125;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #5f676e;
+  --ion-color-medium-tint: #7b838a;
+
+  /** Dark **/
+  --ion-color-dark: #212529;
+  --ion-color-dark-rgb: 33, 37, 41;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #1d2024;
+  --ion-color-dark-tint: #37393e;
+
+  /** Typography **/
+  --ion-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  
+  /** Spacing **/
+  --ion-padding: 16px;
+  --ion-margin: 16px;
+
+  /** Border Radius **/
+  --ion-border-radius: 12px;
+  --ion-border-radius-small: 8px;
+  --ion-border-radius-large: 16px;
+
+  /** Shadows **/
+  --ion-box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --ion-box-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --ion-box-shadow-large: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/** Custom Utility Classes **/
+.card-elevated {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.card-elevated:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  --background: var(--ion-color-primary);
+  --background-hover: var(--ion-color-primary-shade);
+  --border-radius: 12px;
+  --box-shadow: 0 4px 12px rgba(0, 45, 84, 0.3);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.3px;
+}
+
+.btn-secondary {
+  --background: var(--ion-color-secondary);
+  --background-hover: var(--ion-color-secondary-shade);
+  --border-radius: 12px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.input-modern {
+  --border-radius: 12px;
+  --border-width: 2px;
+  --highlight-color-focused: var(--ion-color-primary);
+  --padding-start: 16px;
+  --padding-end: 16px;
+  font-size: 1rem;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #002d54 0%, #004080 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.section-header {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ion-color-primary);
+  margin-bottom: 16px;
+}
+
+.text-muted {
+  color: var(--ion-color-medium);
+  font-size: 0.9rem;
+}
+
+/** Smooth Transitions **/
+* {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/** Loading Spinner **/
+ion-loading {
+  --backdrop-opacity: 0.6;
+  --spinner-color: var(--ion-color-primary);
+}
+
+/** Toast Styling **/
+ion-toast {
+  --border-radius: 12px;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/** Alert Styling **/
+ion-alert {
+  --backdrop-opacity: 0.6;
+}
+
+ion-alert .alert-wrapper {
+  border-radius: 16px;
+}
+
+/** Card Styling **/
+ion-card {
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/** Button Styling **/
+ion-button {
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/** Input Styling **/
+ion-input, ion-textarea, ion-select {
+  --border-radius: 12px;
+}
+
+/** Responsive Design **/
+@media (max-width: 768px) {
+  .page-container {
+    padding: 12px;
+  }
+  
+  .section-header {
+    font-size: 1.25rem;
+  }
+}
+
+/** Accessibility **/
+:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 2px;
+}
+
+/** Dark Mode Support **/
+@media (prefers-color-scheme: dark) {
+  body {
+    --ion-background-color: #1a1a1a;
+    --ion-text-color: #ffffff;
+    --ion-card-background: #2a2a2a;
+  }
+}

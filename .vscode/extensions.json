@@ -1,5 +1,9 @@
 {
-    "recommendations": [
-        "Webnative.webnative"
-    ]
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ionic.ionic",
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss"
+  ]
 }
